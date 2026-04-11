@@ -2,137 +2,127 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TACTICAL SCANNER PRO</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script async src="https://docs.opencv.org/4.5.4/opencv.js" onload="cvReady();"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TERMINATOR VISION</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
+        body { margin: 0; background: #111; color: #0f0; font-family: monospace; overflow: hidden; }
+        #ui { position: fixed; top: 10px; left: 10px; z-index: 10; pointer-events: none; text-shadow: 0 0 5px #0f0; font-size: 12px; }
         #btn-start {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 15px 30px; background: #000; border: 2px solid #0f0; color: #0f0;
-            font-size: 1.2rem; cursor: pointer; z-index: 100; box-shadow: 0 0 20px #0f0;
+            padding: 20px; border: 2px solid #0f0; background: none; color: #0f0;
+            z-index: 20; cursor: pointer; font-family: monospace;
         }
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 5;
-            background: repeating-linear-gradient(0deg, transparent 0px, rgba(0,255,0,0.05) 1px, transparent 2px);
-            border: 10px solid rgba(0, 255, 0, 0.1); box-sizing: border-box;
-        }
-        .hud { position: fixed; z-index: 10; font-size: 10px; text-transform: uppercase; padding: 10px; }
-        .top-left { top: 0; left: 0; }
-        .bottom-right { bottom: 0; right: 0; text-align: right; }
-        video { position: absolute; width: 1px; height: 1px; opacity: 0; }
+        video { display: none; }
+        canvas { display: block; width: 100vw; height: 100vh; object-fit: cover; }
+        .log { color: #555; font-size: 9px; }
     </style>
 </head>
 <body>
 
-    <button id="btn-start">ACTIVATE SYSTEM</button>
+    <div id="ui">
+        [ SYSTEM ACTIVE ]<br>
+        MODE: EDGE_DETECTION_SHADERS<br>
+        <div id="debug" class="log">Waiting for user...</div>
+    </div>
+
+    <button id="btn-start" onclick="init()">INITIALIZE INTERFACE</button>
+    <video id="v" playsinline muted></video>
+    <canvas id="c"></canvas>
+
+<script>
+const log = (msg) => document.getElementById('debug').innerHTML += '<br>' + msg;
+
+async function init() {
+    document.getElementById('btn-start').style.display = 'none';
+    const video = document.getElementById('v');
+    const canvas = document.getElementById('c');
+    const gl = canvas.getContext('webgl');
+
+    log('Requesting camera...');
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: "environment" }, 
+            audio: false 
+        });
+        video.srcObject = stream;
+        video.play();
+        log('Camera: OK');
+    } catch (e) {
+        log('ERR: ' + e.message);
+        return;
+    }
+
+    // Шейдеры (вся магия тут)
+    const vs = `attribute vec2 p; void main(){gl_Position=vec4(p,0,1);}`;
+    const fs = `
+        precision mediump float;
+        uniform sampler2D t;
+        uniform vec2 res;
+        void main(){
+            vec2 uv = gl_FragCoord.xy / res;
+            // Оператор Собеля для поиска границ
+            vec3 off = vec3(1.0/res.x, 1.0/res.y, 0.0);
+            float s11 = texture2D(t, uv - off.xy).r;
+            float s12 = texture2D(t, uv - off.zy).r;
+            float s13 = texture2D(t, uv - off.zy + off.xz).r;
+            float s21 = texture2D(t, uv - off.xz).r;
+            float s23 = texture2D(t, uv + off.xz).r;
+            float s31 = texture2D(t, uv + off.zy - off.xz).r;
+            float s32 = texture2D(t, uv + off.zy).r;
+            float s33 = texture2D(t, uv + off.xy).r;
+            float x = s13 + 2.0*s23 + s33 - (s11 + 2.0*s21 + s31);
+            float y = s31 + 2.0*s32 + s33 - (s11 + 2.0*s12 + s13);
+            float d = clamp(sqrt(x*x + y*y) * 5.0, 0.0, 1.0); // Умножаем на 5 для яркости линий
+            gl_FragColor = vec4(0.0, d, d * 0.5, 1.0); // Зеленый контур
+        }
+    `;
+
+    function createShader(gl, type, src) {
+        const s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return s;
+    }
+
+    const prog = gl.createProgram();
+    gl.attachShader(prog, createShader(gl, gl.VERTEX_SHADER, vs));
+    gl.attachShader(prog, createShader(gl, gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]), gl.STATIC_DRAW);
     
-    <div id="overlay"></div>
-    <div class="hud top-left">SCANNER: ACTIVE<br>SENSORS: CV_CANNY_EDGE</div>
-    <div class="hud bottom-right">BATTERY: 94%<br>FPS: <span id="fps-val">0</span></div>
+    const pos = gl.getAttribLocation(prog, "p");
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
 
-    <video id="videoInput" playsinline muted></video>
+    const tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
-    <script>
-        let video = document.getElementById('videoInput');
-        let btn = document.getElementById('btn-start');
-        let isCvLoaded = false;
-        let renderer, scene, camera, texture, hiddenCanvas, ctx;
-        let src, dst, cap;
+    const tLoc = gl.getUniformLocation(prog, "t");
+    const rLoc = gl.getUniformLocation(prog, "res");
 
-        function cvReady() {
-            isCvLoaded = true;
-            btn.innerText = "START SCANNER";
+    function render() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        
+        if (video.readyState >= video.HAVE_CURRENT_DATA) {
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+            gl.uniform2f(rLoc, canvas.width, canvas.height);
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
         }
-
-        btn.onclick = async () => {
-            if (!isCvLoaded) return alert("Система загружается, подожди секунду...");
-            btn.style.display = 'none';
-            
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment", width: 640, height: 480 }, 
-                    audio: false 
-                });
-                video.srcObject = stream;
-                video.play();
-                
-                // Ждем, пока видео реально начнет отдавать кадры и размеры
-                video.onloadedmetadata = () => {
-                    initThreeJS();
-                };
-            } catch (err) {
-                alert("Ошибка доступа: " + err);
-            }
-        };
-
-        function initThreeJS() {
-            const width = video.videoWidth;
-            const height = video.videoHeight;
-
-            // Настройка сцены
-            scene = new THREE.Scene();
-            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-            renderer = new THREE.WebGLRenderer({ antialias: false });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            document.body.appendChild(renderer.domElement);
-
-            // Холст для обработки
-            hiddenCanvas = document.createElement('canvas');
-            hiddenCanvas.width = width;
-            hiddenCanvas.height = height;
-            ctx = hiddenCanvas.getContext('2d');
-
-            // Текстура с холста
-            texture = new THREE.CanvasTexture(hiddenCanvas);
-            const geometry = new THREE.PlaneGeometry(2, 2);
-            // Используем ярко-зеленый цвет для линий
-            const material = new THREE.MeshBasicMaterial({ map: texture, color: 0x33ff33 });
-            const mesh = new THREE.Mesh(geometry, material);
-            scene.add(mesh);
-
-            // Инициализация OpenCV матриц строго по размеру видео
-            src = new cv.Mat(height, width, cv.CV_8UC4);
-            dst = new cv.Mat(height, width, cv.CV_8UC1);
-            cap = new cv.VideoCapture(video);
-
-            requestAnimationFrame(processFrame);
-        }
-
-        let lastTime = 0;
-        function processFrame(time) {
-            if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                cap.read(src);
-                
-                // 1. В ч/б
-                cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-                
-                // 2. Детекция краев (Canny)
-                // Снизил пороги для лучшей видимости в темноте
-                cv.Canny(dst, dst, 30, 80, 3, false);
-                
-                // 3. Рисуем результат на промежуточный холст
-                cv.imshow(hiddenCanvas, dst);
-
-                // 4. Обновляем Three.js
-                texture.needsUpdate = true;
-                
-                // Индикация FPS
-                if (time - lastTime > 500) {
-                    document.getElementById('fps-val').innerText = Math.round(1000 / (time - lastTime + 0.1) * 10);
-                    lastTime = time;
-                }
-            }
-
-            renderer.render(scene, camera);
-            requestAnimationFrame(processFrame);
-        }
-
-        window.onresize = () => {
-            if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
-        };
-    </script>
+        requestAnimationFrame(render);
+    }
+    log('Shader engine: STARTED');
+    render();
+}
+</script>
 </body>
 </html>
