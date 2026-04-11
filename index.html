@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GREEN VISION</title>
+    <title>GREEN VISION FIXED</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; }
@@ -11,6 +11,7 @@
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             padding: 20px; border: 2px solid #0f0; background: #000; color: #0f0;
             font-family: monospace; z-index: 100; cursor: pointer; text-transform: uppercase;
+            letter-spacing: 2px;
         }
         canvas { display: block; width: 100vw; height: 100vh; }
         video { display: none; }
@@ -18,7 +19,7 @@
 </head>
 <body>
 
-    <button id="btn-start">Включить ПНВ</button>
+    <button id="btn-start">ACTIVATE SYSTEM</button>
     <video id="v" playsinline muted></video>
 
 <script>
@@ -37,20 +38,19 @@ async function init() {
         await video.play();
         setupScene();
     } catch (e) {
-        alert('Доступ к камере отклонен или ошибка HTTPS');
+        alert('Ошибка доступа к камере. Убедитесь, что используете HTTPS.');
     }
 }
 
 function setupScene() {
     scene = new THREE.Scene();
     camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    renderer = new THREE.WebGLRenderer();
+    renderer = new THREE.WebGLRenderer({ antialias: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
 
     texture = new THREE.VideoTexture(video);
     
-    // Шейдер для зеленого эффекта контуров (Canny-like)
     const material = new THREE.ShaderMaterial({
         uniforms: {
             t: { value: texture },
@@ -59,7 +59,9 @@ function setupScene() {
         vertexShader: `
             varying vec2 vUv;
             void main() {
-                vUv = vec2(uv.x, 1.0 - uv.y); // Исправляем ориентацию
+                // ИСПРАВЛЕНИЕ: Инвертируем Y, чтобы картинка не была вверх ногами
+                // И оставляем X как есть (uv.x). 
+                vUv = vec2(uv.x, uv.y); 
                 gl_Position = vec4(position, 1.0);
             }
         `,
@@ -70,6 +72,8 @@ function setupScene() {
             varying vec2 vUv;
             void main() {
                 vec3 off = vec3(1.0/res.x, 1.0/res.y, 0.0);
+                
+                // Берем яркость соседних пикселей
                 float s11 = texture2D(t, vUv - off.xy).r;
                 float s12 = texture2D(t, vUv - off.zy).r;
                 float s13 = texture2D(t, vUv - off.zy + off.xz).r;
@@ -78,12 +82,14 @@ function setupScene() {
                 float s31 = texture2D(t, vUv + off.zy - off.xz).r;
                 float s32 = texture2D(t, vUv + off.zy).r;
                 float s33 = texture2D(t, vUv + off.xy).r;
+                
+                // Оператор Собеля для выделения граней
                 float x = s13 + 2.0*s23 + s33 - (s11 + 2.0*s21 + s31);
                 float y = s31 + 2.0*s32 + s33 - (s11 + 2.0*s12 + s13);
                 float edge = sqrt(x*x + y*y);
                 
-                // Только зеленый канал для эффекта ПНВ
-                gl_FragColor = vec4(0.0, edge * 5.0, 0.0, 1.0);
+                // Вывод: ярко-зеленые контуры на черном фоне
+                gl_FragColor = vec4(0.0, edge * 4.0, 0.0, 1.0);
             }
         `
     });
@@ -100,7 +106,13 @@ function render() {
 }
 
 window.addEventListener('resize', () => {
-    if(renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+    if(renderer) {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        // Обновляем разрешение в шейдере при повороте экрана
+        if(scene.children[0]) {
+            scene.children[0].material.uniforms.res.value.set(window.innerWidth, window.innerHeight);
+        }
+    }
 });
 
 document.getElementById('btn-start').addEventListener('click', init);
