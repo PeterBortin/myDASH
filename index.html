@@ -3,64 +3,109 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TERMINATOR VISION</title>
+    <title>NEURAL TACTICAL OVERLAY</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
     <style>
-        body { margin: 0; background: #111; color: #0f0; font-family: monospace; overflow: hidden; }
-        #ui { position: fixed; top: 10px; left: 10px; z-index: 10; pointer-events: none; text-shadow: 0 0 5px #0f0; font-size: 12px; }
-        #btn-start {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 20px; border: 2px solid #0f0; background: none; color: #0f0;
-            z-index: 20; cursor: pointer; font-family: monospace;
-        }
-        video { display: none; }
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
         canvas { display: block; width: 100vw; height: 100vh; object-fit: cover; }
-        .log { color: #555; font-size: 9px; }
+        video { display: none; }
+
+        /* HUD Элементы */
+        #hud-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+        .hud-panel { position: absolute; padding: 15px; background: rgba(0, 20, 0, 0.5); border: 1px solid #0f0; }
+        .top-left { top: 10px; left: 10px; }
+        .bottom-left { bottom: 100px; left: 10px; width: 200px; }
+        
+        /* Контролы */
+        #controls {
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 80px;
+            background: rgba(0, 0, 0, 0.8); border-top: 1px solid #0f0;
+            display: flex; align-items: center; justify-content: space-around; z-index: 20;
+        }
+        input[type=range] { width: 100px; accent-color: #0f0; }
+        button { background: #000; border: 1px solid #0f0; color: #0f0; padding: 10px; cursor: pointer; text-transform: uppercase; }
+        button:active { background: #0f0; color: #000; }
+
+        #btn-init {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            padding: 30px; font-size: 20px; z-index: 100; background: #000; border: 3px solid #0f0; color: #0f0;
+        }
+
+        .label-box { position: absolute; border: 1px solid #f00; color: #f00; font-size: 12px; pointer-events: none; }
     </style>
 </head>
 <body>
 
-    <div id="ui">
-        [ SYSTEM ACTIVE ]<br>
-        MODE: EDGE_DETECTION_SHADERS<br>
-        <div id="debug" class="log">Waiting for user...</div>
-    </div>
-
-    <button id="btn-start" onclick="init()">INITIALIZE INTERFACE</button>
+    <button id="btn-init">INITIALIZE NEURAL INTERFACE</button>
     <video id="v" playsinline muted></video>
     <canvas id="c"></canvas>
+    
+    <div id="hud-container">
+        <div class="hud-panel top-left">
+            SYS: NEURAL_SCANNER_V3<br>
+            TARGETING: ACTIVE<br>
+            SENSORS: <span id="status">WAITING...</span>
+        </div>
+        <div class="hud-panel bottom-left" id="detection-list">
+            OBJECTS IN VIEW:<br>—
+        </div>
+    </div>
+
+    <div id="controls">
+        <div>
+            GAIN: <input type="range" id="gain" min="1" max="20" value="5">
+        </div>
+        <button onclick="toggleMode()">SWITCH MODE</button>
+        <div id="fps-counter">FPS: 0</div>
+    </div>
 
 <script>
-const log = (msg) => document.getElementById('debug').innerHTML += '<br>' + msg;
+let model;
+let currentMode = 0; // 0: Edges, 1: Neural Overlay
+const video = document.getElementById('v');
+const canvas = document.getElementById('c');
+const gl = canvas.getContext('webgl');
+const gainInput = document.getElementById('gain');
+const detectionList = document.getElementById('detection-list');
 
 async function init() {
-    document.getElementById('btn-start').style.display = 'none';
-    const video = document.getElementById('v');
-    const canvas = document.getElementById('c');
-    const gl = canvas.getContext('webgl');
+    document.getElementById('btn-init').style.display = 'none';
+    document.getElementById('status').innerText = 'LOADING MODEL...';
+    
+    // Загрузка нейросети
+    model = await cocoSsd.load();
+    document.getElementById('status').innerText = 'ACTIVE';
 
-    log('Requesting camera...');
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" }, 
-            audio: false 
-        });
-        video.srcObject = stream;
-        video.play();
-        log('Camera: OK');
-    } catch (e) {
-        log('ERR: ' + e.message);
-        return;
-    }
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "environment", width: 640, height: 480 }, 
+        audio: false 
+    });
+    video.srcObject = stream;
+    await video.play();
 
-    // Шейдеры (вся магия тут)
-    const vs = `attribute vec2 p; void main(){gl_Position=vec4(p,0,1);}`;
+    setupWebGL();
+    runNeuralLoop();
+    render();
+}
+
+function toggleMode() {
+    currentMode = currentMode === 0 ? 1 : 0;
+}
+
+// --- WEBGL ЛОГИКА ---
+let prog, rLoc, gLoc, tLoc;
+
+function setupWebGL() {
+    const vs = `attribute vec2 p; varying vec2 vUv; void main(){vUv=vec2(p.x*0.5+0.5, 0.5-p.y*0.5); gl_Position=vec4(p,0,1);}`;
     const fs = `
         precision mediump float;
         uniform sampler2D t;
         uniform vec2 res;
+        uniform float gain;
+        varying vec2 vUv;
         void main(){
-            vec2 uv = gl_FragCoord.xy / res;
-            // Оператор Собеля для поиска границ
+            vec2 uv = vUv;
             vec3 off = vec3(1.0/res.x, 1.0/res.y, 0.0);
             float s11 = texture2D(t, uv - off.xy).r;
             float s12 = texture2D(t, uv - off.zy).r;
@@ -72,8 +117,12 @@ async function init() {
             float s33 = texture2D(t, uv + off.xy).r;
             float x = s13 + 2.0*s23 + s33 - (s11 + 2.0*s21 + s31);
             float y = s31 + 2.0*s32 + s33 - (s11 + 2.0*s12 + s13);
-            float d = clamp(sqrt(x*x + y*y) * 5.0, 0.0, 1.0); // Умножаем на 5 для яркости линий
-            gl_FragColor = vec4(0.0, d, d * 0.5, 1.0); // Зеленый контур
+            float d = clamp(sqrt(x*x + y*y) * gain, 0.0, 1.0);
+            
+            vec4 base = texture2D(t, uv);
+            vec3 nightVision = vec3(0.0, base.g * 1.5, 0.0); // Эффект ПНВ
+            
+            gl_FragColor = vec4(nightVision * 0.3 + vec3(0.0, d, d*0.2), 1.0);
         }
     `;
 
@@ -84,7 +133,7 @@ async function init() {
         return s;
     }
 
-    const prog = gl.createProgram();
+    prog = gl.createProgram();
     gl.attachShader(prog, createShader(gl, gl.VERTEX_SHADER, vs));
     gl.attachShader(prog, createShader(gl, gl.FRAGMENT_SHADER, fs));
     gl.linkProgram(prog);
@@ -104,25 +153,65 @@ async function init() {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 
-    const tLoc = gl.getUniformLocation(prog, "t");
-    const rLoc = gl.getUniformLocation(prog, "res");
-
-    function render() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        gl.viewport(0, 0, canvas.width, canvas.height);
-        
-        if (video.readyState >= video.HAVE_CURRENT_DATA) {
-            gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
-            gl.uniform2f(rLoc, canvas.width, canvas.height);
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-        }
-        requestAnimationFrame(render);
-    }
-    log('Shader engine: STARTED');
-    render();
+    rLoc = gl.getUniformLocation(prog, "res");
+    gLoc = gl.getUniformLocation(prog, "gain");
 }
+
+// --- НЕЙРОННЫЙ ЦИКЛ ---
+async function runNeuralLoop() {
+    if (model) {
+        const predictions = await model.detect(video);
+        updateDetectionHUD(predictions);
+    }
+    setTimeout(runNeuralLoop, 200); // Не грузим CPU слишком сильно
+}
+
+function updateDetectionHUD(preds) {
+    // Чистим старые рамки
+    const oldBoxes = document.querySelectorAll('.label-box');
+    oldBoxes.forEach(b => b.remove());
+
+    let listHtml = "OBJECTS IN VIEW:<br>";
+    
+    preds.forEach(p => {
+        listHtml += `> ${p.class.toUpperCase()}<br>`;
+        
+        // Создаем визуальную рамку поверх канваса
+        const box = document.createElement('div');
+        box.className = 'label-box';
+        // Пересчет координат видео в координаты экрана
+        const ratioX = window.innerWidth / video.videoWidth;
+        const ratioY = window.innerHeight / video.videoHeight;
+        
+        box.style.left = p.bbox[0] * ratioX + 'px';
+        box.style.top = p.bbox[1] * ratioY + 'px';
+        box.style.width = p.bbox[2] * ratioX + 'px';
+        box.style.height = p.bbox[3] * ratioY + 'px';
+        box.innerHTML = `<span style="background:#f00;color:#fff">${p.class} ${Math.round(p.score*100)}%</span>`;
+        document.body.appendChild(box);
+    });
+    detectionList.innerHTML = listHtml;
+}
+
+let lastTime = 0;
+function render(time) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    
+    if (video.readyState >= video.HAVE_CURRENT_DATA) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, video);
+        gl.uniform2f(rLoc, canvas.width, canvas.height);
+        gl.uniform1f(gLoc, parseFloat(gainInput.value));
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+    }
+
+    document.getElementById('fps-counter').innerText = 'FPS: ' + Math.round(1000 / (time - lastTime + 0.1));
+    lastTime = time;
+    requestAnimationFrame(render);
+}
+
+document.getElementById('btn-init').addEventListener('click', init);
 </script>
 </body>
 </html>
