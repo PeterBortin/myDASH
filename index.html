@@ -2,162 +2,126 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEURAL TACTICAL SCANNER</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
-    <script async src="https://docs.opencv.org/4.5.4/opencv.js" onload="onOpenCvReady();"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>TACTICAL SCANNER v2</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script async src="https://docs.opencv.org/4.5.4/opencv.js" onload="cvReady();"></script>
     <style>
-        body { margin: 0; padding: 0; background: #000; overflow: hidden; font-family: 'Courier New', monospace; }
-        canvas { display: block; width: 100vw; height: 100vh; }
+        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
+        canvas { display: block; }
         
-        #ui-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; border: 2px solid #0f0; box-sizing: border-box;
-            background: radial-gradient(circle, transparent 50%, rgba(0, 20, 0, 0.4) 100%);
-            opacity: 0.7;
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; border: 20px solid rgba(0, 255, 0, 0.1); box-sizing: border-box;
+            background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,255,0,0.03) 1px, rgba(0,0,0,0) 2px);
         }
 
-        .hud-element { position: absolute; color: #0f0; text-shadow: 0 0 5px #0f0; font-size: 12px; text-transform: uppercase; }
-        .top-left { top: 20px; left: 20px; }
-        .top-right { top: 20px; right: 20px; text-align: right; }
-        .bottom { bottom: 20px; left: 50%; transform: translateX(-50%); width: 80%; }
-        
-        #status { color: #f00; font-weight: bold; }
-        .scanner-line {
-            position: absolute; width: 100%; height: 2px; background: rgba(0, 255, 0, 0.2);
-            box-shadow: 0 0 15px #0f0; top: 0; animation: scan 3s linear infinite;
-        }
-
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
-
-        #loading {
+        #btn-start {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: #0f0; text-align: center; z-index: 100;
+            padding: 20px 40px; background: none; border: 2px solid #0f0; color: #0f0;
+            font-size: 1.2rem; cursor: pointer; z-index: 100; text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(0,255,0,0.5);
         }
+
+        .hud { position: fixed; padding: 10px; font-size: 10px; text-transform: uppercase; z-index: 10; }
+        .top-left { top: 10px; left: 10px; border-left: 2px solid #0f0; padding-left: 5px; }
+        .bottom-right { bottom: 10px; right: 10px; text-align: right; }
+        
+        #videoInput { position: fixed; right: -1000px; } /* Спрятано */
     </style>
 </head>
 <body>
 
-    <div id="loading">INITIALIZING SYSTEM...<br><span id="cv-status">LOADING OPENCV...</span></div>
+    <button id="btn-start">Инициализировать систему</button>
 
-    <div id="ui-overlay">
-        <div class="scanner-line"></div>
-        <div class="hud-element top-left">
-            MODE: THERMAL EDGE DETECTION<br>
-            RANGE: AUTO<br>
-            STATUS: <span id="status">CONNECTING...</span>
-        </div>
-        <div class="hud-element top-right">
-            SENSORS: ACTIVE<br>
-            FPS: <span id="fps">0</span><br>
-            V-0.4.2-ALPHA
-        </div>
-        <div class="hud-element bottom">
-            <div style="border: 1px solid #0f0; height: 4px; width: 100%; position: relative;">
-                <div id="power-bar" style="background: #0f0; height: 100%; width: 85%;"></div>
-            </div>
-            <center>OBJECT IDENTIFICATION ACTIVE</center>
-        </div>
+    <div id="overlay"></div>
+    <div class="hud top-left">
+        SYS: ACTIVE<br>
+        MODE: EDGE_DETECTION_NIGHT_VISION<br>
+        GAIN: +24db
+    </div>
+    <div class="hud bottom-right">
+        BATTERY: 88%<br>
+        FPS: <span id="fps-val">0</span>
     </div>
 
-    <video id="videoInput" style="display:none;" playsinline></video>
-    <canvas id="canvasOutput" style="display:none;"></canvas>
+    <video id="videoInput" playsinline></video>
 
     <script>
         let video = document.getElementById('videoInput');
-        let cvReady = false;
-        let lastTime = 0;
+        let btn = document.getElementById('btn-start');
+        let isCvLoaded = false;
 
-        function onOpenCvReady() {
-            document.getElementById('cv-status').innerText = 'OPENCV READY';
-            document.getElementById('cv-status').style.color = '#0f0';
-            cvReady = true;
-            initCamera();
+        function cvReady() {
+            isCvLoaded = true;
+            console.log('OpenCV Loaded');
         }
 
-        async function initCamera() {
+        btn.onclick = async () => {
+            btn.style.display = 'none';
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { 
-                        facingMode: "environment",
-                        width: { ideal: 640 },
-                        height: { ideal: 480 }
-                    }, 
+                    video: { facingMode: "environment" }, 
                     audio: false 
                 });
                 video.srcObject = stream;
                 video.play();
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('status').innerText = 'STABLE';
-                document.getElementById('status').style.color = '#0f0';
-                startProcessing();
+                initThreeJS();
             } catch (err) {
-                console.error("Camera error: ", err);
-                document.getElementById('cv-status').innerText = 'ACCESS DENIED';
-                document.getElementById('cv-status').style.color = '#f00';
+                alert("Ошибка камеры: " + err);
             }
-        }
+        };
 
-        // Three.js Setup
-        const scene = new THREE.Scene();
-        const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        function initThreeJS() {
+            const scene = new THREE.Scene();
+            const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            const renderer = new THREE.WebGLRenderer({ antialias: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
 
-        const texture = new THREE.CanvasTexture(document.getElementById('canvasOutput'));
-        const geometry = new THREE.PlaneGeometry(2, 2);
-        const material = new THREE.MeshBasicMaterial({ map: texture, color: 0x00ff00, transparent: true, blending: THREE.AdditiveBlending });
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
+            // Создаем невидимый холст для OpenCV
+            const hiddenCanvas = document.createElement('canvas');
+            hiddenCanvas.width = 640;
+            hiddenCanvas.height = 480;
+            const ctx = hiddenCanvas.getContext('2d');
 
-        function startProcessing() {
-            let src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-            let dst = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC1);
+            const texture = new THREE.CanvasTexture(hiddenCanvas);
+            const geometry = new THREE.PlaneGeometry(2, 2);
+            // Цвет 0x00FF44 дает тот самый «военный» зеленый
+            const material = new THREE.MeshBasicMaterial({ map: texture, color: 0x00ff44 });
+            const mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            let src = new cv.Mat(480, 640, cv.CV_8UC4);
+            let dst = new cv.Mat(480, 640, cv.CV_8UC1);
             let cap = new cv.VideoCapture(video);
 
-            const FPS = 30;
-            function processVideo() {
-                if (!cvReady) return;
-                
-                let begin = Date.now();
+            function process() {
+                if (!isCvLoaded) {
+                    requestAnimationFrame(process);
+                    return;
+                }
+
                 cap.read(src);
-                
-                // 1. Конвертация в Ч/Б
+                // Превращаем в ЧБ
                 cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+                // Детекция краев (Canny). 70 и 150 — пороги чувствительности.
+                cv.Canny(dst, dst, 70, 150, 3, false);
                 
-                // 2. Усиление (Contrast Limited Adaptive Histogram Equalization) для темноты
-                // cv.equalizeHist(dst, dst); 
+                // Рисуем результат OpenCV на наш невидимый холст
+                cv.imshow(hiddenCanvas, dst);
 
-                // 3. Детекция краев (Canny)
-                // Параметры 50, 100 подходят для контуров
-                cv.Canny(dst, dst, 50, 100, 3, false);
-
-                // Вывод на скрытый канвас
-                cv.imshow('canvasOutput', dst);
-
-                // Обновление текстуры Three.js
+                // Сообщаем Three.js, что текстура обновилась
                 texture.needsUpdate = true;
-
-                // FPS Counter
-                let delay = 1000 / FPS - (Date.now() - begin);
-                let currentFps = Math.round(1000 / (Date.now() - lastTime));
-                document.getElementById('fps').innerText = currentFps;
-                lastTime = Date.now();
-
+                
+                document.getElementById('fps-val').innerText = Math.round(1000 / 16); // Примерный FPS
+                
                 renderer.render(scene, camera);
-                setTimeout(processVideo, delay);
+                requestAnimationFrame(process);
             }
-            setTimeout(processVideo, 0);
+
+            requestAnimationFrame(process);
         }
-
-        window.addEventListener('resize', () => {
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-
     </script>
 </body>
 </html>
