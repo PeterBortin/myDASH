@@ -3,125 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>TACTICAL SCANNER v2</title>
+    <title>TACTICAL SCANNER PRO</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script async src="https://docs.opencv.org/4.5.4/opencv.js" onload="cvReady();"></script>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-        canvas { display: block; }
-        
-        #overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; border: 20px solid rgba(0, 255, 0, 0.1); box-sizing: border-box;
-            background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,255,0,0.03) 1px, rgba(0,0,0,0) 2px);
-        }
-
+        body { margin: 0; background: #000; color: #0f0; font-family: 'Courier New', monospace; overflow: hidden; }
         #btn-start {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 20px 40px; background: none; border: 2px solid #0f0; color: #0f0;
-            font-size: 1.2rem; cursor: pointer; z-index: 100; text-transform: uppercase;
-            box-shadow: 0 0 15px rgba(0,255,0,0.5);
+            padding: 15px 30px; background: #000; border: 2px solid #0f0; color: #0f0;
+            font-size: 1.2rem; cursor: pointer; z-index: 100; box-shadow: 0 0 20px #0f0;
         }
-
-        .hud { position: fixed; padding: 10px; font-size: 10px; text-transform: uppercase; z-index: 10; }
-        .top-left { top: 10px; left: 10px; border-left: 2px solid #0f0; padding-left: 5px; }
-        .bottom-right { bottom: 10px; right: 10px; text-align: right; }
-        
-        #videoInput { position: fixed; right: -1000px; } /* Спрятано */
+        #overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 5;
+            background: repeating-linear-gradient(0deg, transparent 0px, rgba(0,255,0,0.05) 1px, transparent 2px);
+            border: 10px solid rgba(0, 255, 0, 0.1); box-sizing: border-box;
+        }
+        .hud { position: fixed; z-index: 10; font-size: 10px; text-transform: uppercase; padding: 10px; }
+        .top-left { top: 0; left: 0; }
+        .bottom-right { bottom: 0; right: 0; text-align: right; }
+        video { position: absolute; width: 1px; height: 1px; opacity: 0; }
     </style>
 </head>
 <body>
 
-    <button id="btn-start">Инициализировать систему</button>
-
+    <button id="btn-start">ACTIVATE SYSTEM</button>
+    
     <div id="overlay"></div>
-    <div class="hud top-left">
-        SYS: ACTIVE<br>
-        MODE: EDGE_DETECTION_NIGHT_VISION<br>
-        GAIN: +24db
-    </div>
-    <div class="hud bottom-right">
-        BATTERY: 88%<br>
-        FPS: <span id="fps-val">0</span>
-    </div>
+    <div class="hud top-left">SCANNER: ACTIVE<br>SENSORS: CV_CANNY_EDGE</div>
+    <div class="hud bottom-right">BATTERY: 94%<br>FPS: <span id="fps-val">0</span></div>
 
-    <video id="videoInput" playsinline></video>
+    <video id="videoInput" playsinline muted></video>
 
     <script>
         let video = document.getElementById('videoInput');
         let btn = document.getElementById('btn-start');
         let isCvLoaded = false;
+        let renderer, scene, camera, texture, hiddenCanvas, ctx;
+        let src, dst, cap;
 
         function cvReady() {
             isCvLoaded = true;
-            console.log('OpenCV Loaded');
+            btn.innerText = "START SCANNER";
         }
 
         btn.onclick = async () => {
+            if (!isCvLoaded) return alert("Система загружается, подожди секунду...");
             btn.style.display = 'none';
+            
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment" }, 
+                    video: { facingMode: "environment", width: 640, height: 480 }, 
                     audio: false 
                 });
                 video.srcObject = stream;
                 video.play();
-                initThreeJS();
+                
+                // Ждем, пока видео реально начнет отдавать кадры и размеры
+                video.onloadedmetadata = () => {
+                    initThreeJS();
+                };
             } catch (err) {
-                alert("Ошибка камеры: " + err);
+                alert("Ошибка доступа: " + err);
             }
         };
 
         function initThreeJS() {
-            const scene = new THREE.Scene();
-            const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-            const renderer = new THREE.WebGLRenderer({ antialias: false });
+            const width = video.videoWidth;
+            const height = video.videoHeight;
+
+            // Настройка сцены
+            scene = new THREE.Scene();
+            camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+            renderer = new THREE.WebGLRenderer({ antialias: false });
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Создаем невидимый холст для OpenCV
-            const hiddenCanvas = document.createElement('canvas');
-            hiddenCanvas.width = 640;
-            hiddenCanvas.height = 480;
-            const ctx = hiddenCanvas.getContext('2d');
+            // Холст для обработки
+            hiddenCanvas = document.createElement('canvas');
+            hiddenCanvas.width = width;
+            hiddenCanvas.height = height;
+            ctx = hiddenCanvas.getContext('2d');
 
-            const texture = new THREE.CanvasTexture(hiddenCanvas);
+            // Текстура с холста
+            texture = new THREE.CanvasTexture(hiddenCanvas);
             const geometry = new THREE.PlaneGeometry(2, 2);
-            // Цвет 0x00FF44 дает тот самый «военный» зеленый
-            const material = new THREE.MeshBasicMaterial({ map: texture, color: 0x00ff44 });
+            // Используем ярко-зеленый цвет для линий
+            const material = new THREE.MeshBasicMaterial({ map: texture, color: 0x33ff33 });
             const mesh = new THREE.Mesh(geometry, material);
             scene.add(mesh);
 
-            let src = new cv.Mat(480, 640, cv.CV_8UC4);
-            let dst = new cv.Mat(480, 640, cv.CV_8UC1);
-            let cap = new cv.VideoCapture(video);
+            // Инициализация OpenCV матриц строго по размеру видео
+            src = new cv.Mat(height, width, cv.CV_8UC4);
+            dst = new cv.Mat(height, width, cv.CV_8UC1);
+            cap = new cv.VideoCapture(video);
 
-            function process() {
-                if (!isCvLoaded) {
-                    requestAnimationFrame(process);
-                    return;
-                }
+            requestAnimationFrame(processFrame);
+        }
 
+        let lastTime = 0;
+        function processFrame(time) {
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
                 cap.read(src);
-                // Превращаем в ЧБ
-                cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
-                // Детекция краев (Canny). 70 и 150 — пороги чувствительности.
-                cv.Canny(dst, dst, 70, 150, 3, false);
                 
-                // Рисуем результат OpenCV на наш невидимый холст
+                // 1. В ч/б
+                cv.cvtColor(src, dst, cv.COLOR_RGBA2GRAY);
+                
+                // 2. Детекция краев (Canny)
+                // Снизил пороги для лучшей видимости в темноте
+                cv.Canny(dst, dst, 30, 80, 3, false);
+                
+                // 3. Рисуем результат на промежуточный холст
                 cv.imshow(hiddenCanvas, dst);
 
-                // Сообщаем Three.js, что текстура обновилась
+                // 4. Обновляем Three.js
                 texture.needsUpdate = true;
                 
-                document.getElementById('fps-val').innerText = Math.round(1000 / 16); // Примерный FPS
-                
-                renderer.render(scene, camera);
-                requestAnimationFrame(process);
+                // Индикация FPS
+                if (time - lastTime > 500) {
+                    document.getElementById('fps-val').innerText = Math.round(1000 / (time - lastTime + 0.1) * 10);
+                    lastTime = time;
+                }
             }
 
-            requestAnimationFrame(process);
+            renderer.render(scene, camera);
+            requestAnimationFrame(processFrame);
         }
+
+        window.onresize = () => {
+            if (renderer) renderer.setSize(window.innerWidth, window.innerHeight);
+        };
     </script>
 </body>
 </html>
