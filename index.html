@@ -2,179 +2,206 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>AI Tactical Hub</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>AI Tactical OS</title>
+    
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <style>
-        :root { --neon: #00ff41; --danger: #ff003c; }
-        body { margin: 0; background: #000; color: var(--neon); font-family: monospace; overflow: hidden; }
+        :root { --neon: #00ff41; --dim-neon: rgba(0, 255, 65, 0.2); --alert: #ff003c; }
         
-        /* Сетка интерфейса */
-        .grid-ui {
-            display: grid;
-            grid-template-rows: 1fr 120px;
-            height: 100vh;
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body, html { margin: 0; padding: 0; background: #000; color: var(--neon); font-family: 'Segoe UI', monospace; height: 100%; overflow: hidden; }
+
+        /* Контейнер приложения */
+        .app-wrapper { display: flex; flex-direction: column; height: 100vh; }
+
+        /* Вьюпорт с видео */
+        .viewport { position: relative; flex: 1; background: #050505; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        video, #overlay { position: absolute; width: 100%; height: 100%; object-fit: contain; transition: opacity 0.5s; }
+
+        /* HUD элементы */
+        .hud-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 10;
+            padding: env(safe-area-inset-top) 15px 15px 15px;
+            display: flex; flex-direction: column; justify-content: space-between;
         }
 
-        .viewport {
-            position: relative;
-            background: #050505;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .hud-header { display: flex; justify-content: space-between; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .scanner-line { 
+            position: absolute; width: 100%; height: 2px; background: var(--dim-neon);
+            box-shadow: 0 0 10px var(--neon); animation: scan 3s linear infinite;
         }
 
-        video, canvas {
-            position: absolute;
-            width: 100%; height: 100%;
-            object-fit: contain;
+        /* Лог событий */
+        .event-log {
+            background: rgba(0, 0, 0, 0.6); border: 1px solid var(--dim-neon);
+            height: 120px; overflow-y: auto; padding: 10px; font-size: 11px;
+            pointer-events: auto; backdrop-filter: blur(5px);
         }
+        .log-entry { margin-bottom: 4px; border-left: 2px solid var(--neon); padding-left: 5px; animation: slideIn 0.3s ease; }
 
-        /* Телеметрия (OSD) */
-        .osd-layer {
-            position: absolute;
-            top: 20px; left: 20px; right: 20px; bottom: 20px;
-            border: 1px solid rgba(0, 255, 65, 0.2);
-            pointer-events: none;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+        /* Панель управления (Touch-optimized) */
+        .controls {
+            background: #111; border-top: 1px solid var(--neon);
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; padding: 5px;
         }
-
-        .stats { background: rgba(0,0,0,0.7); padding: 5px; font-size: 10px; line-height: 1.4; }
-
-        /* Панель управления */
-        .bottom-panel {
-            background: #111;
-            border-top: 2px solid var(--neon);
-            padding: 10px;
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-        }
-
         .btn {
-            background: transparent; border: 1px solid var(--neon);
-            color: var(--neon); padding: 10px; cursor: pointer;
-            min-width: 100px; font-size: 10px;
+            background: #1a1a1a; border: none; color: var(--neon);
+            padding: 20px 10px; font-size: 10px; font-weight: bold;
+            text-transform: uppercase; transition: 0.2s;
         }
-        .btn:active { background: var(--neon); color: #000; }
-        .target-found { color: var(--danger); font-weight: bold; animation: blink 0.5s infinite; }
+        .btn:active { background: var(--neon); color: #000; transform: scale(0.95); }
+        .btn:disabled { opacity: 0.3; }
 
-        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+        @keyframes scan { 0% { top: 0%; } 100% { top: 100%; } }
+        @keyframes slideIn { from { transform: translateX(-10px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     </style>
 </head>
 <body>
 
-<div class="grid-ui">
+<div class="app-wrapper">
     <div class="viewport">
-        <video id="v" playsinline muted autoplay></video>
-        <canvas id="c"></canvas>
+        <div class="scanner-line"></div>
+        <video id="webcam" playsinline muted autoplay></video>
+        <canvas id="overlay"></canvas>
         
-        <div class="osd-layer">
-            <div style="display: flex; justify-content: space-between;">
-                <div class="stats" id="ai-stats">AI: STANDBY<br>FPS: 0</div>
-                <div class="stats" id="net-stats">P2P: DISCONNECTED<br>ID: ---</div>
+        <div class="hud-overlay">
+            <div class="hud-header">
+                <div id="sys-status">SYS: READY</div>
+                <div id="clock">00:00:00</div>
             </div>
-            <div class="stats" style="text-align: center;" id="target-info">NO TARGETS IN SECTOR</div>
+            
+            <div class="event-log" id="log">
+                <div class="log-entry">SYSTEM READY. WAITING FOR INITIATION...</div>
+            </div>
         </div>
     </div>
 
-    <div class="bottom-panel">
-        <button class="btn" onclick="initCore()">1. ИНИЦИАЦИЯ СИСТЕМЫ</button>
-        <button class="btn" onclick="startStream()">2. P2P ТРАНСЛЯЦИЯ</button>
-        <button class="btn" onclick="toggleCam()">3. СМЕНА КАМЕРЫ</button>
+    <div class="controls">
+        <button class="btn" id="startBtn" onclick="initSystem()">Boot AI</button>
+        <button class="btn" onclick="exportPDF()">Export PDF</button>
+        <button class="btn" onclick="switchCamera()">Switch</button>
     </div>
 </div>
 
 <script>
-    const v = document.getElementById('v');
-    const c = document.getElementById('c');
-    const ctx = c.getContext('2d');
-    let model, peer, currentFacing = "user";
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    const logContainer = document.getElementById('log');
+    
+    let model;
+    let eventHistory = [];
+    let currentFacing = "user";
 
-    // Профит 1: Реализация AI Сканера
-    async function initCore() {
-        document.getElementById('ai-stats').innerHTML = "AI: LOADING...";
-        model = await blazeface.load();
-        
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: currentFacing },
-            audio: false
-        });
-        v.srcObject = stream;
-        
-        v.onloadedmetadata = () => {
-            c.width = v.videoWidth;
-            c.height = v.videoHeight;
-            renderLoop();
-        };
-    }
+    // Обновление часов
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+    }, 1000);
 
-    async function renderLoop() {
-        const start = performance.now();
-        const predictions = await model.estimateFaces(v, false);
-        
-        ctx.clearRect(0, 0, c.width, c.height);
-        
-        if (predictions.length > 0) {
-            document.getElementById('target-info').className = "stats target-found";
-            document.getElementById('target-info').innerText = `TARGET DETECTED: ID-ALPHA-${predictions.length}`;
-            
-            predictions.forEach(face => {
-                const [x, y] = face.topLeft;
-                const [x2, y2] = face.bottomRight;
-                // Рисуем рамку захвата
-                ctx.strokeStyle = "#ff003c";
-                ctx.lineWidth = 4;
-                ctx.strokeRect(x, y, x2 - x, y2 - y);
-                // Рисуем перекрестие
-                ctx.beginPath();
-                ctx.moveTo(x + (x2-x)/2, y - 10); ctx.lineTo(x + (x2-x)/2, y + 10);
-                ctx.stroke();
+    async function initSystem() {
+        document.getElementById('sys-status').innerText = "BOOTING...";
+        document.getElementById('startBtn').disabled = true;
+
+        try {
+            // Загрузка COCO-SSD
+            model = await cocossd.load();
+            addLog("MODEL: COCO-SSD LOADED");
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: currentFacing, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
             });
-        } else {
-            document.getElementById('target-info').className = "stats";
-            document.getElementById('target-info').innerText = "NO TARGETS IN SECTOR";
+            video.srcObject = stream;
+            
+            video.onloadedmetadata = () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                addLog("CAMERA: ACTIVE");
+                document.getElementById('sys-status').innerText = "SCANNING";
+                detectFrame();
+            };
+        } catch (e) {
+            addLog("ERROR: " + e.message);
         }
-
-        const end = performance.now();
-        document.getElementById('ai-stats').innerHTML = `AI: ONLINE<br>LATENCY: ${Math.round(end-start)}ms`;
-        requestAnimationFrame(renderLoop);
     }
 
-    // Профит 2: Реализация P2P Сети
-    function startStream() {
-        peer = new Peer();
-        peer.on('open', id => {
-            document.getElementById('net-stats').innerHTML = `P2P: READY<br>ID: ${id}`;
-            const target = prompt("Введите ID получателя (или оставьте пустым для ожидания):");
-            if (target) {
-                const call = peer.call(target, v.srcObject);
-                document.getElementById('net-stats').innerText = "P2P: STREAMING...";
+    async function detectFrame() {
+        if (!model) return;
+        
+        const predictions = await model.detect(video);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        predictions.forEach(p => {
+            const [x, y, width, height] = p.bbox;
+            
+            // Рисуем рамку
+            ctx.strokeStyle = "#00ff41";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x, y, width, height);
+            
+            // Заливка текста
+            ctx.fillStyle = "#00ff41";
+            ctx.font = "18px monospace";
+            ctx.fillText(`${p.class.toUpperCase()} [${Math.round(p.score * 100)}%]`, x, y > 20 ? y - 10 : 20);
+
+            // Логируем только значимые события (уверенность > 70%)
+            if (p.score > 0.7) {
+                checkAndLogEvent(p.class);
             }
         });
 
-        peer.on('call', call => {
-            if(confirm("Принять входящий поток?")) {
-                call.answer();
-                call.on('stream', remoteStream => {
-                    v.srcObject = remoteStream;
-                    document.getElementById('net-stats').innerText = "P2P: RECEIVING DATA";
-                });
-            }
-        });
+        requestAnimationFrame(detectFrame);
     }
 
-    // Доп. функция для мобильных: Переключение камер
-    async function toggleCam() {
+    function checkAndLogEvent(label) {
+        const lastEvent = eventHistory[eventHistory.length - 1];
+        const now = new Date();
+        
+        // Логируем, если объект новый или прошло более 5 секунд с прошлого раза
+        if (!lastEvent || lastEvent.label !== label || (now - lastEvent.time) > 5000) {
+            const entry = { label, time: now, timeStr: now.toLocaleTimeString() };
+            eventHistory.push(entry);
+            addLog(`DETECTED: ${label.toUpperCase()}`);
+        }
+    }
+
+    function addLog(msg) {
+        const div = document.createElement('div');
+        div.className = 'log-entry';
+        div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+        logContainer.prepend(div);
+    }
+
+    // Экспорт в PDF (через jsPDF)
+    function exportPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFont("courier");
+        doc.text("TACTICAL AI HUB - EVENT LOG", 10, 10);
+        doc.text("----------------------------", 10, 15);
+        
+        let y = 25;
+        eventHistory.forEach((ev, i) => {
+            doc.text(`${i+1}. [${ev.timeStr}] OBJECT: ${ev.label}`, 10, y);
+            y += 7;
+            if (y > 280) { doc.addPage(); y = 20; }
+        });
+
+        doc.save(`log_${Date.now()}.pdf`);
+        addLog("SYSTEM: PDF EXPORTED");
+    }
+
+    async function switchCamera() {
         currentFacing = currentFacing === "user" ? "environment" : "user";
-        if (v.srcObject) {
-            v.srcObject.getTracks().forEach(t => t.stop());
-            initCore();
+        if (video.srcObject) {
+            video.srcObject.getTracks().forEach(t => t.stop());
+            initSystem();
         }
     }
 </script>
