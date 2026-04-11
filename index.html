@@ -1,213 +1,771 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AI Tactical Hub Fullscreen</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <style>
-        :root { --neon: #00ff41; --dim-neon: rgba(0, 255, 65, 0.15); --alert: #ff003c; --bg: #000; }
-        
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); color: var(--neon); font-family: 'Courier New', monospace; overflow: hidden; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AI TACTICAL HUB</title>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
 
-        /* Основной контейнер на весь экран */
-        .main-app {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            width: 100vw;
-            padding-bottom: env(safe-area-inset-bottom); /* Отступ под "полоску" iOS */
-        }
+:root {
+–g: #00ff41;
+–g2: #00cc33;
+–r: #ff003c;
+–r2: #cc0030;
+–y: #ffcc00;
+–bg: #020a04;
+–panel: #060e07;
+–border: rgba(0,255,65,0.25);
+}
 
-        /* Зона визиря */
-        .viewport-container {
-            position: relative;
-            flex: 1; /* Занимает всё доступное место, кроме кнопок */
-            background: #050505;
-            overflow: hidden;
-            border-bottom: 1px solid var(--neon);
-        }
+- { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #webcam, #overlay {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 100%; height: 100%;
-            object-fit: cover; /* Заполняет экран полностью */
-        }
+body {
+background: var(–bg);
+color: var(–g);
+font-family: ‘Share Tech Mono’, monospace;
+height: 100dvh;
+display: flex;
+flex-direction: column;
+overflow: hidden;
+user-select: none;
+}
 
-        /* HUD элементы поверх видео */
-        .hud-top {
-            position: absolute; top: 10px; left: 10px; right: 10px;
-            display: flex; justify-content: space-between;
-            z-index: 10; font-size: 10px; text-shadow: 1px 1px 2px #000;
-        }
+/* ── HEADER ── */
+header {
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 6px 14px;
+border-bottom: 1px solid var(–border);
+background: var(–panel);
+flex-shrink: 0;
+}
+.logo {
+font-family: ‘Orbitron’, monospace;
+font-weight: 900;
+font-size: 13px;
+letter-spacing: 3px;
+color: var(–g);
+}
+.logo span { color: var(–r); }
+#clock {
+font-size: 11px;
+color: var(–g2);
+letter-spacing: 2px;
+}
 
-        .event-log {
-            position: absolute; bottom: 10px; left: 10px; right: 10px;
-            height: 80px; background: rgba(0,0,0,0.5);
-            border-left: 2px solid var(--neon);
-            padding: 5px; font-size: 10px; overflow-y: hidden;
-            display: flex; flex-direction: column-reverse;
-            z-index: 10; backdrop-filter: blur(2px);
-        }
+/* ── MAIN LAYOUT ── */
+.main {
+display: flex;
+flex: 1;
+overflow: hidden;
+}
 
-        .log-entry { margin-bottom: 2px; opacity: 0.8; animation: blink 0.2s ease; }
+/* ── SIDEBAR ── */
+.sidebar {
+width: 180px;
+flex-shrink: 0;
+border-right: 1px solid var(–border);
+background: var(–panel);
+display: flex;
+flex-direction: column;
+padding: 10px 8px;
+gap: 6px;
+overflow-y: auto;
+}
 
-        /* Панель управления */
-        .action-bar {
-            height: 70px;
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: var(--neon);
-        }
+.sidebar-title {
+font-size: 9px;
+letter-spacing: 2px;
+color: var(–g2);
+border-bottom: 1px solid var(–border);
+padding-bottom: 4px;
+margin-bottom: 2px;
+}
 
-        .btn {
-            background: #111; border: none; color: var(--neon);
-            text-transform: uppercase; font-size: 11px; font-weight: bold;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer;
-        }
-        .btn:active { background: var(--neon); color: #000; }
-        .btn:disabled { color: #333; }
+.metric {
+background: rgba(0,255,65,0.04);
+border: 1px solid var(–border);
+padding: 6px 8px;
+}
+.metric-label { font-size: 8px; letter-spacing: 1px; color: var(–g2); }
+.metric-value { font-size: 14px; color: var(–g); margin-top: 2px; }
+.metric-value.danger { color: var(–r); }
+.metric-value.warn { color: var(–y); }
 
-        /* Спец-эффекты */
-        .scan-anim {
-            position: absolute; width: 100%; height: 2px;
-            background: var(--neon); box-shadow: 0 0 15px var(--neon);
-            z-index: 5; animation: scanMove 4s linear infinite;
-        }
+/* stat bar */
+.bar-wrap { height: 3px; background: rgba(0,255,65,0.1); margin-top: 4px; }
+.bar-fill { height: 100%; background: var(–g); transition: width 0.3s; }
+.bar-fill.danger { background: var(–r); }
 
-        @keyframes scanMove { 0% { top: 0; } 100% { top: 100%; } }
-        @keyframes blink { from { opacity: 0; } to { opacity: 0.8; } }
-    </style>
+/* target list */
+#target-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.tgt-item {
+border: 1px solid var(–r);
+padding: 5px 7px;
+font-size: 9px;
+animation: pulse-border 1s infinite;
+color: var(–r);
+}
+@keyframes pulse-border {
+0%,100% { border-color: var(–r); }
+50%      { border-color: var(–r2); }
+}
+.tgt-item .tgt-id { font-size: 11px; font-weight: bold; }
+
+/* ── VIEWPORT ── */
+.viewport {
+flex: 1;
+position: relative;
+overflow: hidden;
+background: #000;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+#vid, #overlay {
+position: absolute;
+top: 0; left: 0;
+width: 100%; height: 100%;
+object-fit: contain;
+}
+#overlay { z-index: 5; pointer-events: none; }
+
+/* scan lines */
+.viewport::after {
+content: ‘’;
+position: absolute;
+inset: 0;
+background: repeating-linear-gradient(
+to bottom,
+transparent 0px, transparent 3px,
+rgba(0,0,0,0.18) 3px, rgba(0,0,0,0.18) 4px
+);
+pointer-events: none;
+z-index: 10;
+}
+
+/* corner brackets */
+.corner {
+position: absolute;
+width: 28px; height: 28px;
+border-color: var(–g);
+border-style: solid;
+opacity: 0.5;
+z-index: 11;
+pointer-events: none;
+}
+.corner.tl { top: 14px; left: 14px; border-width: 2px 0 0 2px; }
+.corner.tr { top: 14px; right: 14px; border-width: 2px 2px 0 0; }
+.corner.bl { bottom: 14px; left: 14px; border-width: 0 0 2px 2px; }
+.corner.br { bottom: 14px; right: 14px; border-width: 0 2px 2px 0; }
+
+/* center reticle */
+.reticle {
+position: absolute;
+z-index: 11;
+pointer-events: none;
+opacity: 0.3;
+}
+.reticle::before, .reticle::after {
+content: ‘’;
+position: absolute;
+background: var(–g);
+}
+.reticle::before { width: 1px; height: 30px; top: -15px; left: 0; }
+.reticle::after  { width: 30px; height: 1px; left: -15px; top: 0; }
+
+/* bottom HUD text */
+.hud-bottom {
+position: absolute;
+bottom: 16px;
+left: 50%;
+transform: translateX(-50%);
+z-index: 12;
+font-size: 10px;
+letter-spacing: 2px;
+text-align: center;
+pointer-events: none;
+transition: color 0.2s;
+}
+.hud-bottom.locked { color: var(–r); animation: blink 0.5s infinite; }
+@keyframes blink { 50% { opacity: 0.3; } }
+
+/* ── BOTTOM PANEL ── */
+.bottom-panel {
+display: flex;
+gap: 0;
+border-top: 1px solid var(–border);
+background: var(–panel);
+flex-shrink: 0;
+}
+
+.btn {
+flex: 1;
+background: transparent;
+border: none;
+border-right: 1px solid var(–border);
+color: var(–g2);
+font-family: ‘Share Tech Mono’, monospace;
+font-size: 9px;
+letter-spacing: 1px;
+padding: 10px 6px;
+cursor: pointer;
+transition: background 0.15s, color 0.15s;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 4px;
+}
+.btn:last-child { border-right: none; }
+.btn .btn-icon { font-size: 16px; }
+.btn:hover { background: rgba(0,255,65,0.07); color: var(–g); }
+.btn:active { background: var(–g); color: #000; }
+.btn.active { color: var(–g); border-top: 2px solid var(–g); }
+.btn.danger-btn { color: var(–r); }
+.btn.danger-btn:hover { background: rgba(255,0,60,0.1); }
+.btn:disabled { opacity: 0.35; cursor: default; }
+
+/* p2p modal */
+#p2p-modal {
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,0.85);
+z-index: 100;
+align-items: center;
+justify-content: center;
+}
+#p2p-modal.open { display: flex; }
+.modal-box {
+background: var(–panel);
+border: 1px solid var(–g);
+padding: 20px;
+width: 320px;
+display: flex;
+flex-direction: column;
+gap: 12px;
+}
+.modal-box h2 { font-family: ‘Orbitron’, monospace; font-size: 12px; letter-spacing: 2px; }
+.modal-box input {
+background: transparent;
+border: 1px solid var(–border);
+color: var(–g);
+font-family: ‘Share Tech Mono’, monospace;
+font-size: 12px;
+padding: 8px;
+width: 100%;
+outline: none;
+}
+.modal-box input:focus { border-color: var(–g); }
+.modal-row { display: flex; gap: 8px; }
+.modal-btn {
+flex: 1; padding: 8px;
+border: 1px solid var(–g); background: transparent;
+color: var(–g); font-family: ‘Share Tech Mono’, monospace;
+font-size: 10px; cursor: pointer; letter-spacing: 1px;
+}
+.modal-btn:hover { background: var(–g); color: #000; }
+.modal-close { border-color: var(–r); color: var(–r); }
+.modal-close:hover { background: var(–r); color: #000; }
+.modal-info { font-size: 10px; color: var(–g2); line-height: 1.5; }
+
+/* log */
+#log {
+font-size: 9px;
+color: var(–g2);
+line-height: 1.6;
+max-height: 70px;
+overflow-y: auto;
+border-top: 1px solid var(–border);
+padding-top: 4px;
+}
+#log .log-err { color: var(–r); }
+#log .log-ok  { color: var(–g); }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(–border); }
+</style>
+
 </head>
 <body>
 
-<div class="main-app">
-    <div class="viewport-container">
-        <div class="scan-anim"></div>
-        <div class="hud-top">
-            <div id="status">STATUS: STANDBY</div>
-            <div id="ai-load">CPU: 0%</div>
-        </div>
+<header>
+  <div class="logo">AI<span>TACT</span>HUB <span style="color:var(--g2);font-size:9px;letter-spacing:1px">v2.0</span></div>
+  <div id="clock">--:--:--</div>
+</header>
 
-        <video id="webcam" playsinline muted autoplay></video>
-        <canvas id="overlay"></canvas>
-
-        <div class="event-log" id="log">
-            <div class="log-entry">> SYSTEM BOOT READY...</div>
-        </div>
+<div class="main">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">■ СИСТЕМА</div>
+    <div class="metric">
+      <div class="metric-label">СТАТУС AI</div>
+      <div class="metric-value" id="m-ai">STANDBY</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">ЗАДЕРЖКА</div>
+      <div class="metric-value" id="m-lat">—</div>
+      <div class="bar-wrap"><div class="bar-fill" id="lat-bar" style="width:0%"></div></div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">КАДР / СЕК</div>
+      <div class="metric-value" id="m-fps">—</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">P2P</div>
+      <div class="metric-value warn" id="m-p2p">OFFLINE</div>
     </div>
 
-    <div class="action-bar">
-        <button class="btn" id="initBtn" onclick="runAI()">START AI</button>
-        <button class="btn" onclick="exportLog()">PDF LOG</button>
-        <button class="btn" onclick="flip()">FLIP CAM</button>
+```
+<div class="sidebar-title" style="margin-top:6px">■ ЦЕЛИ</div>
+<div class="metric">
+  <div class="metric-label">ОБНАРУЖЕНО</div>
+  <div class="metric-value danger" id="m-count">0</div>
+</div>
+<div id="target-list"></div>
+
+<div style="flex:1"></div>
+<div id="log"></div>
+```
+
+  </div>
+
+  <!-- VIEWPORT -->
+
+  <div class="viewport" id="vp">
+    <video id="vid" playsinline muted autoplay></video>
+    <canvas id="overlay"></canvas>
+    <div class="corner tl"></div>
+    <div class="corner tr"></div>
+    <div class="corner bl"></div>
+    <div class="corner br"></div>
+    <div class="reticle" style="top:50%;left:50%"></div>
+    <div class="hud-bottom" id="hud-status">■ СИСТЕМА НЕ АКТИВИРОВАНА</div>
+  </div>
+</div>
+
+<!-- BOTTOM BUTTONS -->
+
+<div class="bottom-panel">
+  <button class="btn" id="btn-init" onclick="initSystem()">
+    <span class="btn-icon">⚡</span>ИНИЦИАЛИЗАЦИЯ
+  </button>
+  <button class="btn" id="btn-cam" onclick="toggleCamera()" disabled>
+    <span class="btn-icon">🔄</span>КАМЕРА
+  </button>
+  <button class="btn" id="btn-ai" onclick="toggleAI()" disabled>
+    <span class="btn-icon">👁</span>AI СКАНЕР
+  </button>
+  <button class="btn" id="btn-p2p" onclick="openP2P()">
+    <span class="btn-icon">📡</span>P2P СЕТЬ
+  </button>
+  <button class="btn danger-btn" id="btn-stop" onclick="stopAll()" disabled>
+    <span class="btn-icon">✕</span>СТОП
+  </button>
+</div>
+
+<!-- P2P MODAL -->
+
+<div id="p2p-modal">
+  <div class="modal-box">
+    <h2>📡 P2P ТРАНСЛЯЦИЯ</h2>
+    <div class="modal-info" id="p2p-myid">Мой ID: инициализация...</div>
+    <input id="p2p-input" placeholder="ID получателя" />
+    <div class="modal-row">
+      <button class="modal-btn" onclick="startCall()">▶ ПОЗВОНИТЬ</button>
+      <button class="modal-btn modal-close" onclick="closeP2P()">✕ ЗАКРЫТЬ</button>
     </div>
+    <div class="modal-info" id="p2p-status">Статус: ожидание...</div>
+  </div>
 </div>
 
 <script>
-    const video = document.getElementById('webcam');
-    const canvas = document.getElementById('overlay');
-    const ctx = canvas.getContext('2d');
-    const logBox = document.getElementById('log');
-    
-    let detector;
-    let history = [];
-    let facing = "user";
+// ─────────────────────────────────────────────────────────────────────────────
+// GLOBALS
+// ─────────────────────────────────────────────────────────────────────────────
+const vid     = document.getElementById('vid');
+const overlay = document.getElementById('overlay');
+const ctx2d   = overlay.getContext('2d');
 
-    async function runAI() {
-        document.getElementById('status').innerText = "LOADING COCO-SSD...";
-        document.getElementById('initBtn').disabled = true;
+let aiModel   = null;
+let aiActive  = false;
+let aiLoop    = null;
+let fpsTimer  = 0, fpsFrames = 0, fpsValue = 0;
 
-        try {
-            detector = await cocossd.load();
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: facing }, audio: false
-            });
-            video.srcObject = stream;
-            
-            video.onloadedmetadata = () => {
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                addLog("AI KERNEL ONLINE");
-                document.getElementById('status').innerText = "SCANNING...";
-                loop();
-            };
-        } catch (e) {
-            addLog("ERR: " + e.message);
-        }
+let peer      = null;
+let currentFacing = 'user';
+let activeStream  = null;
+let remoteMode    = false;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CLOCK
+// ─────────────────────────────────────────────────────────────────────────────
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('ru-RU', { hour12: false });
+}, 1000);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LOG
+// ─────────────────────────────────────────────────────────────────────────────
+function log(msg, type = '') {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  if (type) line.className = `log-${type}`;
+  line.textContent = `> ${msg}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  // keep max 20 lines
+  while (el.children.length > 20) el.removeChild(el.firstChild);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 1. ИНИЦИАЛИЗАЦИЯ КАМЕРЫ + МОДЕЛИ
+// ─────────────────────────────────────────────────────────────────────────────
+async function initSystem() {
+  setBtn('btn-init', false);
+  setM('m-ai', 'ЗАГРУЗКА...', '');
+  setHud('■ ЗАГРУЗКА МОДЕЛИ...', false);
+  log('Запуск системы...');
+
+  try {
+    // Camera
+    await startCamera();
+
+    // Load BlazeFace
+    log('Загрузка BlazeFace...');
+    aiModel = await blazeface.load();
+    log('Модель загружена', 'ok');
+
+    setM('m-ai', 'ГОТОВО', '');
+    setHud('■ READY — НАЖМИТЕ AI СКАНЕР', false);
+    setBtn('btn-cam',  true);
+    setBtn('btn-ai',   true);
+    setBtn('btn-stop', true);
+    setBtn('btn-init', false);
+    document.getElementById('btn-init').textContent = '✓';
+    log('Система активирована', 'ok');
+  } catch(e) {
+    log('Ошибка: ' + e.message, 'err');
+    setM('m-ai', 'ОШИБКА', 'danger');
+    setHud('■ ОШИБКА ИНИЦИАЛИЗАЦИИ', false);
+    setBtn('btn-init', true);
+  }
+}
+
+async function startCamera() {
+  if (activeStream) activeStream.getTracks().forEach(t => t.stop());
+
+  const constraints = {
+    video: {
+      facingMode: currentFacing,
+      width: { ideal: 1280 },
+      height: { ideal: 720 }
+    },
+    audio: false
+  };
+
+  activeStream = await navigator.mediaDevices.getUserMedia(constraints);
+  vid.srcObject = activeStream;
+
+  await new Promise(res => {
+    vid.onloadedmetadata = () => { vid.play(); res(); };
+  });
+
+  syncCanvas();
+  log(`Камера: ${currentFacing === 'user' ? 'фронтальная' : 'основная'}`, 'ok');
+}
+
+function syncCanvas() {
+  overlay.width  = vid.videoWidth  || 640;
+  overlay.height = vid.videoHeight || 480;
+}
+
+// resize canvas if video size changes
+vid.addEventListener('resize', syncCanvas);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 2. TOGGLE CAMERA
+// ─────────────────────────────────────────────────────────────────────────────
+async function toggleCamera() {
+  if (!activeStream) return;
+  currentFacing = currentFacing === 'user' ? 'environment' : 'user';
+  try {
+    await startCamera();
+  } catch(e) {
+    log('Смена камеры: ' + e.message, 'err');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 3. AI SCANNER
+// ─────────────────────────────────────────────────────────────────────────────
+function toggleAI() {
+  if (!aiModel) return;
+  aiActive = !aiActive;
+  const btn = document.getElementById('btn-ai');
+
+  if (aiActive) {
+    btn.classList.add('active');
+    btn.innerHTML = '<span class="btn-icon">👁</span>AI: ON';
+    setHud('■ СКАНИРОВАНИЕ...', false);
+    setM('m-ai', 'ACTIVE', '');
+    fpsTimer = performance.now();
+    fpsFrames = 0;
+    runAI();
+    log('AI сканер активирован', 'ok');
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = '<span class="btn-icon">👁</span>AI СКАНЕР';
+    setHud('■ AI ВЫКЛЮЧЕН', false);
+    setM('m-ai', 'OFFLINE', '');
+    ctx2d.clearRect(0, 0, overlay.width, overlay.height);
+    document.getElementById('target-list').innerHTML = '';
+    document.getElementById('m-count').textContent = '0';
+    log('AI сканер остановлен');
+  }
+}
+
+async function runAI() {
+  if (!aiActive || !aiModel) return;
+
+  // Ensure canvas is in sync
+  if (overlay.width !== vid.videoWidth || overlay.height !== vid.videoHeight) syncCanvas();
+
+  const t0 = performance.now();
+  let predictions = [];
+
+  try {
+    // returnTensors=false, flipHorizontal=false (canvas flips itself for user cam)
+    predictions = await aiModel.estimateFaces(vid, false);
+  } catch(e) {
+    // model can fail on blank frame — just skip
+  }
+
+  const lat = Math.round(performance.now() - t0);
+
+  // FPS
+  fpsFrames++;
+  if (performance.now() - fpsTimer >= 1000) {
+    fpsValue  = fpsFrames;
+    fpsFrames = 0;
+    fpsTimer  = performance.now();
+    document.getElementById('m-fps').textContent = fpsValue;
+  }
+
+  // Latency
+  document.getElementById('m-lat').textContent = lat + ' ms';
+  const latPct = Math.min(lat / 300 * 100, 100);
+  const latBar = document.getElementById('lat-bar');
+  latBar.style.width = latPct + '%';
+  latBar.className   = 'bar-fill' + (lat > 150 ? ' danger' : '');
+
+  // Draw
+  ctx2d.clearRect(0, 0, overlay.width, overlay.height);
+  updateTargetList(predictions);
+
+  predictions.forEach((face, i) => {
+    const [x1, y1] = face.topLeft;
+    const [x2, y2] = face.bottomRight;
+    const w = x2 - x1, h = y2 - y1;
+    const cx = x1 + w / 2, cy = y1 + h / 2;
+    const conf = face.probability ? Math.round(face.probability[0] * 100) : '?';
+
+    // Red box
+    ctx2d.strokeStyle = '#ff003c';
+    ctx2d.lineWidth   = 2;
+    ctx2d.strokeRect(x1, y1, w, h);
+
+    // Corner brackets
+    const s = Math.min(w, h) * 0.25;
+    ctx2d.strokeStyle = '#ff003c';
+    ctx2d.lineWidth   = 3;
+    [[x1, y1, 1, 1], [x2, y1, -1, 1], [x1, y2, 1, -1], [x2, y2, -1, -1]].forEach(([bx, by, dx, dy]) => {
+      ctx2d.beginPath();
+      ctx2d.moveTo(bx + dx * s, by);
+      ctx2d.lineTo(bx, by);
+      ctx2d.lineTo(bx, by + dy * s);
+      ctx2d.stroke();
+    });
+
+    // Crosshair at center
+    ctx2d.strokeStyle = 'rgba(255,0,60,0.7)';
+    ctx2d.lineWidth   = 1;
+    ctx2d.beginPath();
+    ctx2d.moveTo(cx - 12, cy); ctx2d.lineTo(cx + 12, cy);
+    ctx2d.moveTo(cx, cy - 12); ctx2d.lineTo(cx, cy + 12);
+    ctx2d.stroke();
+
+    // Label
+    ctx2d.fillStyle = 'rgba(255,0,60,0.8)';
+    ctx2d.fillRect(x1, y1 - 16, w, 16);
+    ctx2d.fillStyle = '#fff';
+    ctx2d.font = '10px "Share Tech Mono", monospace';
+    ctx2d.fillText(`TGT-${String(i+1).padStart(2,'0')} ${conf}%`, x1 + 3, y1 - 4);
+
+    // Keypoints
+    if (face.landmarks) {
+      ctx2d.fillStyle = '#ffcc00';
+      face.landmarks.forEach(([lx, ly]) => {
+        ctx2d.beginPath();
+        ctx2d.arc(lx, ly, 2, 0, Math.PI * 2);
+        ctx2d.fill();
+      });
     }
+  });
 
-    async function loop() {
-        if (!detector) return;
-        
-        const start = performance.now();
-        const predictions = await detector.detect(video);
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        predictions.forEach(p => {
-            const [x, y, w, h] = p.bbox;
-            // Рамка
-            ctx.strokeStyle = "#00ff41";
-            ctx.setLineDash([5, 5]);
-            ctx.strokeRect(x, y, w, h);
-            
-            // Текст
-            ctx.fillStyle = "#00ff41";
-            ctx.fillText(`${p.class.toUpperCase()}`, x + 5, y + 15);
+  // HUD
+  const n = predictions.length;
+  document.getElementById('m-count').textContent = n;
+  if (n > 0) {
+    setHud(`◉ LOCKED: ${n} TARGET${n > 1 ? 'S' : ''}`, true);
+  } else {
+    setHud('■ СКАНИРОВАНИЕ... NO CONTACT', false);
+  }
 
-            if (p.score > 0.6) {
-                logOnce(p.class);
-            }
-        });
+  requestAnimationFrame(runAI);
+}
 
-        const end = performance.now();
-        document.getElementById('ai-load').innerText = `LATENCY: ${Math.round(end-start)}ms`;
-        requestAnimationFrame(loop);
-    }
+function updateTargetList(faces) {
+  const list = document.getElementById('target-list');
+  list.innerHTML = '';
+  faces.forEach((f, i) => {
+    const [x1, y1] = f.topLeft;
+    const [x2, y2] = f.bottomRight;
+    const conf = f.probability ? Math.round(f.probability[0] * 100) : '?';
+    const el = document.createElement('div');
+    el.className = 'tgt-item';
+    el.innerHTML = `<div class="tgt-id">TGT-${String(i+1).padStart(2,'0')}</div>
+      CONF: ${conf}%<br>
+      X:${Math.round(x1)} Y:${Math.round(y1)}<br>
+      W:${Math.round(x2-x1)} H:${Math.round(y2-y1)}`;
+    list.appendChild(el);
+  });
+}
 
-    function logOnce(label) {
-        const now = new Date();
-        if (history.length === 0 || history[history.length-1].label !== label || (now - history[history.length-1].time > 3000)) {
-            history.push({ label, time: now, str: now.toLocaleTimeString() });
-            addLog(`DETECTED: ${label.toUpperCase()}`);
-        }
-    }
+// ─────────────────────────────────────────────────────────────────────────────
+// 4. P2P
+// ─────────────────────────────────────────────────────────────────────────────
+function openP2P() {
+  document.getElementById('p2p-modal').classList.add('open');
+  if (!peer) initPeer();
+}
+function closeP2P() {
+  document.getElementById('p2p-modal').classList.remove('open');
+}
 
-    function addLog(msg) {
-        const div = document.createElement('div');
-        div.className = 'log-entry';
-        div.innerText = `> ${msg}`;
-        logBox.prepend(div);
-        if (logBox.children.length > 5) logBox.lastChild.remove();
-    }
+function initPeer() {
+  document.getElementById('p2p-myid').textContent = 'Мой ID: генерация...';
+  peer = new Peer();
 
-    function exportLog() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.setFont("courier");
-        doc.text("TACTICAL LOG REPORT", 10, 10);
-        history.forEach((h, i) => doc.text(`${i+1}. [${h.str}] ${h.label}`, 10, 20 + i*7));
-        doc.save("ai_report.pdf");
-        addLog("PDF GENERATED");
-    }
+  peer.on('open', id => {
+    document.getElementById('p2p-myid').innerHTML =
+      `Мой ID: <b style="color:var(--g)">${id}</b>`;
+    setM('m-p2p', 'READY', 'warn');
+    log('P2P ID: ' + id, 'ok');
+  });
 
-    function flip() {
-        facing = facing === "user" ? "environment" : "user";
-        if (video.srcObject) {
-            video.srcObject.getTracks().forEach(t => t.stop());
-            runAI();
-        }
-    }
+  peer.on('call', incoming => {
+    document.getElementById('p2p-status').textContent = 'Входящий звонок...';
+    incoming.answer();
+    incoming.on('stream', remote => {
+      vid.srcObject = remote;
+      remoteMode = true;
+      setM('m-p2p', 'RX', '');
+      document.getElementById('p2p-status').textContent = 'Получение потока';
+      log('P2P: приём потока', 'ok');
+    });
+  });
+
+  peer.on('error', e => {
+    log('P2P ошибка: ' + e.type, 'err');
+    setM('m-p2p', 'ERR', 'danger');
+  });
+}
+
+function startCall() {
+  const target = document.getElementById('p2p-input').value.trim();
+  if (!target) { log('Введите ID получателя', 'err'); return; }
+  if (!activeStream) { log('Сначала запустите камеру', 'err'); return; }
+
+  const call = peer.call(target, activeStream);
+  setM('m-p2p', 'TX...', 'warn');
+  document.getElementById('p2p-status').textContent = 'Соединение...';
+  log('P2P: вызов ' + target);
+
+  call.on('stream', () => {
+    setM('m-p2p', 'ONLINE', '');
+    document.getElementById('p2p-status').textContent = 'Трансляция активна';
+    log('P2P: трансляция', 'ok');
+  });
+  call.on('error', e => {
+    log('Call error: ' + e, 'err');
+    setM('m-p2p', 'ERR', 'danger');
+  });
+
+  closeP2P();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 5. STOP ALL
+// ─────────────────────────────────────────────────────────────────────────────
+function stopAll() {
+  aiActive = false;
+  ctx2d.clearRect(0, 0, overlay.width, overlay.height);
+
+  if (activeStream) {
+    activeStream.getTracks().forEach(t => t.stop());
+    activeStream = null;
+  }
+  if (peer) { peer.destroy(); peer = null; }
+  vid.srcObject = null;
+
+  setM('m-ai', 'OFFLINE', '');
+  setM('m-p2p', 'OFFLINE', 'warn');
+  setM('m-fps', '—', '');
+  setM('m-lat', '—', '');
+  document.getElementById('m-count').textContent = '0';
+  document.getElementById('target-list').innerHTML = '';
+  document.getElementById('btn-ai').classList.remove('active');
+  document.getElementById('btn-ai').innerHTML = '<span class="btn-icon">👁</span>AI СКАНЕР';
+  setHud('■ СИСТЕМА ОСТАНОВЛЕНА', false);
+
+  setBtn('btn-cam',  false);
+  setBtn('btn-ai',   false);
+  setBtn('btn-stop', false);
+  setBtn('btn-init', true);
+  document.getElementById('btn-init').innerHTML = '<span class="btn-icon">⚡</span>ИНИЦИАЛИЗАЦИЯ';
+  log('Система остановлена');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+function setM(id, val, cls) {
+  const el = document.getElementById(id);
+  el.textContent = val;
+  el.className = 'metric-value' + (cls ? ' ' + cls : '');
+}
+
+function setBtn(id, enabled) {
+  document.getElementById(id).disabled = !enabled;
+}
+
+function setHud(text, locked) {
+  const h = document.getElementById('hud-status');
+  h.textContent = text;
+  h.className   = 'hud-bottom' + (locked ? ' locked' : '');
+}
 </script>
+
 </body>
 </html>
