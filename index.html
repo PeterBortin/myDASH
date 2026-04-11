@@ -2,37 +2,95 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Advanced Video Interface</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Tactical Video Interface v2</title>
     
     <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet" />
     <style>
-        body { margin: 0; background: #0a0a0a; color: #00ff41; font-family: 'Courier New', monospace; overflow: hidden; }
-        .container { display: flex; flex-direction: column; height: 100vh; align-items: center; justify-content: center; }
+        :root { --accent: #00ff41; --bg: #050505; }
         
-        /* Стилизация видео под "тактический" интерфейс */
-        .video-wrapper { position: relative; border: 2px solid #00ff41; box-shadow: 0 0 15px rgba(0, 255, 65, 0.3); width: 90%; max-width: 640px; aspect-ratio: 16/9; }
-        video { width: 100%; height: 100%; object-fit: cover; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
-        .controls { margin-top: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        button { background: transparent; border: 1px solid #00ff41; color: #00ff41; padding: 10px 20px; cursor: pointer; text-transform: uppercase; font-size: 12px; }
-        button:active { background: #00ff41; color: #000; }
-        
-        #status { position: absolute; top: 10px; left: 10px; font-size: 10px; pointer-events: none; }
+        body, html { 
+            margin: 0; padding: 0; width: 100%; height: 100%; 
+            background: var(--bg); color: var(--accent);
+            font-family: 'Courier New', monospace; overflow: hidden;
+        }
+
+        /* Адаптивный контейнер под размер экрана */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            width: 100vw;
+            height: 100vh;
+            padding: 10px;
+        }
+
+        .video-viewport {
+            position: relative;
+            flex-grow: 1; /* Занимает всё свободное место */
+            border: 1px solid var(--accent);
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        #main-video {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: contain; /* Сохраняет пропорции без обрезки */
+        }
+
+        #overlay-canvas {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .ui-panel {
+            height: 80px;
+            display: flex;
+            gap: 10px;
+            padding-top: 10px;
+            justify-content: center;
+        }
+
+        button {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 10px;
+            font-size: 10px;
+            text-transform: uppercase;
+            flex: 1;
+            max-width: 150px;
+        }
+
+        #osd {
+            position: absolute;
+            top: 10px; left: 10px;
+            font-size: 12px;
+            text-shadow: 0 0 5px #000;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="video-wrapper">
-        <div id="status">SYSTEM: STANDBY</div>
-        <video id="main-video" class="video-js vjs-default-skin" playsinline muted></video>
-        <canvas id="overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></canvas>
+<div class="app-container">
+    <div class="video-viewport">
+        <div id="osd">STATUS: OFFLINE</div>
+        <video id="main-video" class="video-js vjs-default-skin" playsinline muted autoplay></video>
+        <canvas id="overlay-canvas"></canvas>
     </div>
 
-    <div class="controls">
-        <button onclick="startCamera()">Запустить камеру</button>
-        <button onclick="initPeer()">Создать Peer ID</button>
+    <div class="ui-panel">
+        <button onclick="bootSystem()">Start System</button>
+        <button onclick="connectToPeer()">Connect</button>
     </div>
 </div>
 
@@ -43,84 +101,89 @@
 <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
 <script>
-    let player = videojs('main-video');
-    let model;
-    let peer;
+    let model, peer, currentCall;
+    const videoEl = document.querySelector('#main-video_html5_api') || document.querySelector('video');
+    const canvas = document.getElementById('overlay-canvas');
+    const ctx = canvas.getContext('2d');
 
-    // 1. Оптимизированный запрос к камере
-    async function startCamera() {
-        const constraints = {
-            video: {
-                facingMode: "user", // "environment" для задней камеры
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
-            audio: false
-        };
-
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraints);
-            const videoElement = document.querySelector('video');
-            videoElement.srcObject = stream;
-            videoElement.play();
-            
-            document.getElementById('status').innerText = "SYSTEM: CAMERA_ACTIVE";
-            
-            // Запуск ИИ после активации камеры
-            initAI();
-        } catch (err) {
-            console.error("Ошибка доступа:", err);
-            alert("Не удалось получить доступ к камере. Проверьте разрешения.");
-        }
+    // Настройка размера канваса под видео
+    function resizeCanvas() {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
     }
 
-    // 2. Инициализация TensorFlow.js (BlazeFace для детекции лиц)
-    async function initAI() {
-        model = await blazeface.load();
-        detect();
-    }
-
-    async function detect() {
-        const video = document.querySelector('video');
-        if (video.readyState === 4) {
-            const predictions = await model.estimateFaces(video, false);
-            // Тут можно рисовать на canvas поверх видео
-            if (predictions.length > 0) {
-                document.getElementById('status').innerText = `SYSTEM: TARGET_DETECTED (${predictions.length})`;
-            }
-        }
-        requestAnimationFrame(detect); // Цикл обработки
-    }
-
-    // 3. Инициализация PeerJS для P2P связи
-    function initPeer() {
-        peer = new Peer();
-        peer.on('open', (id) => {
-            console.log('My peer ID is: ' + id);
-            alert('Ваш ID: ' + id);
-        });
+    async function bootSystem() {
+        document.getElementById('osd').innerText = "STATUS: INITIALIZING...";
         
-        peer.on('call', (call) => {
-            navigator.mediaDevices.getUserMedia({video: true}).then((stream) => {
-                call.answer(stream);
-                call.on('stream', (remoteStream) => {
-                    // Отображение удаленного потока
-                });
+        // 1. Камера
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user" }, 
+                audio: false 
+            });
+            videoEl.srcObject = stream;
+            resizeCanvas();
+            
+            // 2. Загрузка AI
+            model = await blazeface.load();
+            document.getElementById('osd').innerText = "STATUS: AI_ONLINE";
+            
+            runDetection();
+        } catch (e) {
+            document.getElementById('osd').innerText = "STATUS: ERROR_ACCESS";
+        }
+    }
+
+    // Обработка кадра через TensorFlow
+    async function runDetection() {
+        if (model) {
+            const predictions = await model.estimateFaces(videoEl, false);
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = "#00ff41";
+            ctx.lineWidth = 2;
+
+            predictions.forEach(prediction => {
+                const start = prediction.topLeft;
+                const end = prediction.bottomRight;
+                const size = [end[0] - start[0], end[1] - start[1]];
+                
+                // Рисуем рамку захвата
+                ctx.strokeRect(start[0], start[1], size[0], size[1]);
+                ctx.strokeRect(start[0]-5, start[1]-5, 10, 10); // Углы
+            });
+        }
+        setTimeout(runDetection, 60); // ~15 FPS для экономии батареи мобильных
+    }
+
+    // PeerJS функционал: Звонок и чат
+    function initPeerServer() {
+        peer = new Peer();
+        
+        peer.on('open', id => {
+            prompt("Ваш ID (скопируйте для друга):", id);
+        });
+
+        // Прием звонка
+        peer.on('call', call => {
+            call.answer(videoEl.srcObject);
+            call.on('stream', remoteStream => {
+                videoEl.srcObject = remoteStream; // Показываем поток собеседника
             });
         });
     }
 
-    // 4. Поддержка HLS (через hls.js для Android/Chrome)
-    function loadHLS(url) {
-        if (Hls.isSupported()) {
-            let hls = new Hls();
-            hls.loadSource(url);
-            hls.attachMedia(document.querySelector('video'));
-        } else if (document.querySelector('video').canPlayType('application/vnd.apple.mpegurl')) {
-            // Родная поддержка Safari
-            document.querySelector('video').src = url;
+    function connectToPeer() {
+        const targetId = prompt("Введите ID собеседника:");
+        if (targetId) {
+            const call = peer.call(targetId, videoEl.srcObject);
+            call.on('stream', remoteStream => {
+                videoEl.srcObject = remoteStream;
+            });
         }
     }
+
+    window.addEventListener('resize', resizeCanvas);
 </script>
 </body>
 </html>
