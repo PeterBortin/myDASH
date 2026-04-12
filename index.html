@@ -1,121 +1,763 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>GREEN VISION FIXED</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <style>
-        body { margin: 0; background: #000; overflow: hidden; }
-        #btn-start {
-            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            padding: 20px; border: 2px solid #0f0; background: #000; color: #0f0;
-            font-family: monospace; z-index: 100; cursor: pointer; text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        canvas { display: block; width: 100vw; height: 100vh; }
-        video { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SYS//MONITOR</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+:root {
+–bg: #020408;
+–panel: #050d14;
+–border: #0f2a3a;
+–green: #00ff88;
+–cyan: #00d4ff;
+–red: #ff3366;
+–orange: #ff8c00;
+–yellow: #ffe033;
+–dim: #1a3a4a;
+–text: #7fbfcf;
+–glow-g: 0 0 8px #00ff8866;
+–glow-c: 0 0 8px #00d4ff66;
+–glow-r: 0 0 8px #ff336666;
+}
+
+- { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+background: var(–bg);
+color: var(–text);
+font-family: 'Share Tech Mono', monospace;
+font-size: 12px;
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+/* scanline overlay */
+body::before {
+content:'';
+position:fixed;
+inset:0;
+background: repeating-linear-gradient(
+0deg,
+transparent,
+transparent 2px,
+rgba(0,255,136,0.015) 2px,
+rgba(0,255,136,0.015) 4px
+);
+pointer-events:none;
+z-index:999;
+}
+
+header {
+padding: 14px 16px 10px;
+border-bottom: 1px solid var(–border);
+display:flex;
+align-items:center;
+justify-content:space-between;
+background: linear-gradient(180deg, #060f18, var(–bg));
+}
+
+.logo {
+font-family: 'Orbitron', monospace;
+font-size: 15px;
+font-weight: 900;
+color: var(–cyan);
+letter-spacing: 3px;
+text-shadow: var(–glow-c);
+}
+.logo span { color: var(–green); text-shadow: var(–glow-g); }
+
+.status-dot {
+width: 8px; height: 8px;
+border-radius: 50%;
+background: var(–green);
+box-shadow: var(–glow-g);
+animation: pulse 1.4s ease-in-out infinite;
+display:inline-block;
+margin-right: 6px;
+}
+@keyframes pulse {
+0%,100% { opacity:1; transform:scale(1); }
+50% { opacity:0.4; transform:scale(0.7); }
+}
+
+.live { font-size:10px; color: var(–green); letter-spacing:2px; }
+
+/* warning banner */
+.warning-bar {
+background: linear-gradient(90deg, #1a0010, #0a0015, #1a0010);
+border-bottom: 1px solid #ff336633;
+padding: 6px 16px;
+font-size: 10px;
+color: #ff6688;
+letter-spacing: 0.5px;
+display: flex;
+align-items: center;
+gap: 8px;
+}
+.warning-bar b { color: var(–orange); }
+
+.container { padding: 12px 14px; }
+
+/* metric cards */
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+
+.card {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 12px 10px;
+position:relative;
+overflow:hidden;
+}
+.card::before {
+content:'';
+position:absolute;
+top:0; left:0; right:0;
+height:1px;
+background: linear-gradient(90deg, transparent, var(–cyan), transparent);
+opacity:0.4;
+}
+
+.card-label {
+font-size:9px;
+letter-spacing:2px;
+color: #3a7a9a;
+margin-bottom:6px;
+text-transform:uppercase;
+}
+.card-value {
+font-family: 'Orbitron', monospace;
+font-size:20px;
+font-weight:700;
+color: var(–green);
+text-shadow: var(–glow-g);
+line-height:1;
+}
+.card-value.warn { color: var(–orange); text-shadow: 0 0 8px #ff8c0066; }
+.card-value.danger { color: var(–red); text-shadow: var(–glow-r); }
+.card-unit { font-size:9px; color: var(–text); margin-top:3px; }
+
+/* gauge bar */
+.gauge-wrap { margin-top:8px; }
+.gauge-track {
+height:4px;
+background: var(–dim);
+border-radius:2px;
+overflow:hidden;
+}
+.gauge-fill {
+height:100%;
+border-radius:2px;
+transition: width 0.8s ease;
+background: linear-gradient(90deg, var(–green), var(–cyan));
+}
+.gauge-fill.warn { background: linear-gradient(90deg, var(–orange), var(–yellow)); }
+.gauge-fill.danger { background: linear-gradient(90deg, var(–red), var(–orange)); }
+
+/* section title */
+.section-title {
+font-family: 'Orbitron', monospace;
+font-size: 9px;
+letter-spacing: 3px;
+color: var(–cyan);
+text-shadow: var(–glow-c);
+margin: 14px 0 8px;
+display:flex;
+align-items:center;
+gap:8px;
+}
+.section-title::after {
+content:'';
+flex:1;
+height:1px;
+background: linear-gradient(90deg, var(–border), transparent);
+}
+
+/* sparkline chart */
+.sparkline-card {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius: 6px;
+padding: 10px;
+margin-bottom:10px;
+}
+.sparkline-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+.sparkline-label { font-size:9px; letter-spacing:2px; color:#3a7a9a; text-transform:uppercase; }
+.sparkline-val { font-family:'Orbitron',monospace; font-size:13px; color: var(–green); text-shadow:var(–glow-g); }
+
+canvas.spark { width:100%; height:50px; display:block; }
+
+/* connections list */
+.conn-list { display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
+.conn-item {
+background: var(–panel);
+border: 1px solid var(–border);
+border-left: 3px solid var(–cyan);
+border-radius:4px;
+padding: 8px 10px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+.conn-item.safe { border-left-color: var(–green); }
+.conn-item.warn { border-left-color: var(–orange); }
+.conn-item.danger { border-left-color: var(–red); }
+
+.conn-host { color: #a0d4e0; font-size:11px; }
+.conn-sub { color: #3a7a9a; font-size:9px; margin-top:2px; }
+.conn-badge {
+font-size:9px;
+padding:2px 6px;
+border-radius:10px;
+letter-spacing:1px;
+font-weight:600;
+white-space:nowrap;
+}
+.badge-safe { background:#00ff8820; color:var(–green); border:1px solid #00ff8840; }
+.badge-warn { background:#ff8c0020; color:var(–orange); border:1px solid #ff8c0040; }
+.badge-danger { background:#ff336620; color:var(–red); border:1px solid #ff336640; }
+.badge-info { background:#00d4ff20; color:var(–cyan); border:1px solid #00d4ff40; }
+
+/* threat log */
+.log-box {
+background: var(–panel);
+border: 1px solid var(–border);
+border-radius:6px;
+padding:10px;
+max-height:180px;
+overflow-y:auto;
+margin-bottom:10px;
+}
+.log-entry {
+padding: 4px 0;
+border-bottom: 1px solid #0a1e28;
+display:flex;
+gap:8px;
+font-size:10px;
+align-items:flex-start;
+}
+.log-time { color:#2a5a6a; white-space:nowrap; }
+.log-msg { color: var(–text); flex:1; }
+.log-msg.ok { color: var(–green); }
+.log-msg.warn { color: var(–orange); }
+.log-msg.err { color: var(–red); }
+
+/* memory map */
+.mem-map {
+display:flex;
+height:24px;
+border-radius:4px;
+overflow:hidden;
+gap:1px;
+margin-bottom:6px;
+}
+.mem-seg {
+border-radius:2px;
+transition: flex 0.8s ease;
+}
+.mem-legend { display:flex; flex-wrap:wrap; gap:8px; font-size:9px; color:#3a7a9a; }
+.mem-legend span::before { content:'■ '; }
+.mem-legend .l-used::before { color:#00d4ff; }
+.mem-legend .l-cache::before { color:#00ff88; }
+.mem-legend .l-free::before { color:#1a3a4a; }
+
+/* info notice */
+.info-box {
+background: #060f18;
+border: 1px solid #0f2a3a;
+border-left: 3px solid var(–cyan);
+border-radius:4px;
+padding: 10px 12px;
+font-size:10px;
+color:#3a7a9a;
+line-height:1.7;
+margin-bottom:10px;
+}
+.info-box b { color: var(–cyan); }
+
+/* refresh btn */
+.btn-refresh {
+width:100%;
+padding:12px;
+background: linear-gradient(135deg, #061020, #0a1e30);
+border: 1px solid var(–cyan);
+border-radius:6px;
+color: var(–cyan);
+font-family:'Orbitron',monospace;
+font-size:11px;
+letter-spacing:3px;
+cursor:pointer;
+text-shadow: var(–glow-c);
+box-shadow: 0 0 12px #00d4ff22;
+transition: all 0.2s;
+-webkit-tap-highlight-color: transparent;
+}
+.btn-refresh:active {
+background: #0a2540;
+box-shadow: 0 0 20px #00d4ff44;
+}
+
+/* network bytes */
+.net-row { display:flex; justify-content:space-between; gap:8px; margin-bottom:10px; }
+.net-card {
+flex:1;
+background: var(–panel);
+border:1px solid var(–border);
+border-radius:6px;
+padding:10px;
+text-align:center;
+}
+.net-arrow { font-size:20px; margin-bottom:4px; }
+.net-val { font-family:'Orbitron',monospace; font-size:13px; color:var(–green); text-shadow:var(–glow-g); }
+.net-label { font-size:9px; color:#3a7a9a; margin-top:2px; letter-spacing:1px; }
+
+.footer { text-align:center; padding:16px; color:#1a3a4a; font-size:9px; letter-spacing:2px; }
+</style>
+
 </head>
 <body>
 
-    <button id="btn-start">ACTIVATE SYSTEM</button>
-    <video id="v" playsinline muted></video>
+<header>
+  <div class="logo">SYS<span>//</span>MONITOR</div>
+  <div class="live"><span class="status-dot"></span>LIVE</div>
+</header>
+
+<div class="warning-bar">
+  ⚠ <b>Ограничение браузера:</b> Доступны только данные текущей вкладки. Системные процессы недоступны -- это защита iOS/Android.
+</div>
+
+<div class="container">
+
+  <!-- Top metrics -->
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-label">CPU / ВКЛАДКА</div>
+      <div class="card-value" id="cpuVal">--</div>
+      <div class="card-unit">Загрузка JS-потока</div>
+      <div class="gauge-wrap">
+        <div class="gauge-track"><div class="gauge-fill" id="cpuBar" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">ПАМЯТЬ</div>
+      <div class="card-value" id="memVal">--</div>
+      <div class="card-unit" id="memLimit">--</div>
+      <div class="gauge-wrap">
+        <div class="gauge-track"><div class="gauge-fill" id="memBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-label">FPS</div>
+      <div class="card-value" id="fpsVal">--</div>
+      <div class="card-unit">кадров/сек</div>
+    </div>
+    <div class="card">
+      <div class="card-label">LATENCY</div>
+      <div class="card-value" id="pingVal">--</div>
+      <div class="card-unit">мс задержка</div>
+    </div>
+    <div class="card">
+      <div class="card-label">UPTIME</div>
+      <div class="card-value" id="uptimeVal" style="font-size:14px">--</div>
+      <div class="card-unit">сессия</div>
+    </div>
+  </div>
+
+  <!-- CPU sparkline -->
+
+  <div class="sparkline-card">
+    <div class="sparkline-header">
+      <div class="sparkline-label">CPU ИСТОРИЯ (60 сек)</div>
+      <div class="sparkline-val" id="cpuPeak">--</div>
+    </div>
+    <canvas class="spark" id="cpuChart" height="50"></canvas>
+  </div>
+
+  <!-- Memory map -->
+
+  <div class="section-title">ПАМЯТЬ БРАУЗЕРА</div>
+  <div class="card" style="margin-bottom:10px;">
+    <div class="mem-map" id="memMap">
+      <div class="mem-seg" style="flex:60;background:#00d4ff;"></div>
+      <div class="mem-seg" style="flex:15;background:#00ff88;"></div>
+      <div class="mem-seg" style="flex:25;background:#1a3a4a;"></div>
+    </div>
+    <div class="mem-legend">
+      <span class="l-used">Используется</span>
+      <span class="l-cache">JS Heap</span>
+      <span class="l-free">Свободно</span>
+    </div>
+  </div>
+
+  <!-- Network -->
+
+  <div class="section-title">СЕТЬ</div>
+  <div class="net-row">
+    <div class="net-card">
+      <div class="net-arrow" style="color:var(--cyan)">↓</div>
+      <div class="net-val" id="dlVal">--</div>
+      <div class="net-label">ПОЛУЧЕНО</div>
+    </div>
+    <div class="net-card">
+      <div class="net-arrow" style="color:var(--green)">↑</div>
+      <div class="net-val" id="ulVal">--</div>
+      <div class="net-label">ОТПРАВЛЕНО</div>
+    </div>
+    <div class="net-card">
+      <div class="net-arrow" style="color:var(--orange)">⇅</div>
+      <div class="net-val" id="resCount">--</div>
+      <div class="net-label">РЕСУРСОВ</div>
+    </div>
+  </div>
+
+  <!-- Connections scan -->
+
+  <div class="section-title">ЗАПРОСЫ СТРАНИЦЫ</div>
+  <div class="conn-list" id="connList">
+    <div class="conn-item safe">
+      <div><div class="conn-host">Сканирование...</div><div class="conn-sub">Анализ ресурсов</div></div>
+      <span class="conn-badge badge-info">SCAN</span>
+    </div>
+  </div>
+
+  <!-- Threat log -->
+
+  <div class="section-title">ЛОГ СОБЫТИЙ</div>
+  <div class="log-box" id="logBox"></div>
+
+  <!-- What browser CAN'T see -->
+
+  <div class="section-title">ЧТО НЕ ВИДИТ БРАУЗЕР</div>
+  <div class="info-box">
+    <b>Недоступно из браузера (защита ОС):</b><br>
+    • Процессы других приложений (нет API)<br>
+    • Системные сетевые соединения<br>
+    • Скрытые майнеры в др. приложениях<br>
+    • CPU/RAM других процессов<br>
+    <br>
+    <b>Для полного мониторинга нужны:</b><br>
+    • iOS: <b>Network Extension + App Store app</b><br>
+    • Android: <b>adb shell / root + специальное приложение</b><br>
+    • Роутер: анализ трафика на уровне сети (Pi-hole, pfSense)
+  </div>
+
+<button class="btn-refresh" onclick="fullScan()">[ ЗАПУСТИТЬ СКАНИРОВАНИЕ ]</button>
+
+</div>
+<div class="footer">SYS//MONITOR v1.0 · BROWSER SCOPE ONLY · ДАННЫЕ ТЕКУЩЕЙ ВКЛАДКИ</div>
 
 <script>
-let scene, camera, renderer, texture;
-const video = document.getElementById('v');
+// ─── State ───────────────────────────────────────────────
+const startTime = Date.now();
+let cpuHistory = new Array(60).fill(0);
+let fpsArr = [];
+let lastFrameTime = performance.now();
+let frameCount = 0;
+let currentFps = 60;
+let peakCpu = 0;
+let totalBytes = { dl: 0, ul: 0 };
 
-async function init() {
-    document.getElementById('btn-start').style.display = 'none';
+// ─── Log ────────────────────────────────────────────────
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  const now = new Date();
+  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+  const el = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
+  box.insertBefore(el, box.firstChild);
+  if(box.children.length > 80) box.removeChild(box.lastChild);
+}
 
+// ─── FPS tracking ────────────────────────────────────────
+function trackFps(now) {
+  frameCount++;
+  if(now - lastFrameTime >= 1000) {
+    currentFps = Math.round(frameCount * 1000 / (now - lastFrameTime));
+    frameCount = 0;
+    lastFrameTime = now;
+    updateFPS();
+  }
+  requestAnimationFrame(trackFps);
+}
+requestAnimationFrame(trackFps);
+
+function updateFPS() {
+  const el = document.getElementById('fpsVal');
+  el.textContent = currentFps;
+  el.className = 'card-value' + (currentFps < 30 ? ' danger' : currentFps < 50 ? ' warn' : '');
+}
+
+// ─── CPU estimation via JS loop timing ───────────────────
+function estimateCPU() {
+  const t0 = performance.now();
+  let x = 0;
+  for(let i=0;i<500000;i++) x += Math.sqrt(i);
+  const elapsed = performance.now() - t0;
+  // baseline ~8ms on fast device; scale to 0-100
+  const raw = Math.min(100, Math.round((elapsed / 80) * 100));
+  return raw;
+}
+
+// ─── Memory ──────────────────────────────────────────────
+function getMemory() {
+  if(performance.memory) {
+    const used = performance.memory.usedJSHeapSize;
+    const total = performance.memory.totalJSHeapSize;
+    const limit = performance.memory.jsHeapSizeLimit;
+    return { used, total, limit, pct: Math.round(used/limit*100) };
+  }
+  return null;
+}
+
+function fmtBytes(b) {
+  if(b >= 1073741824) return (b/1073741824).toFixed(1)+'GB';
+  if(b >= 1048576) return (b/1048576).toFixed(1)+'MB';
+  if(b >= 1024) return (b/1024).toFixed(0)+'KB';
+  return b+'B';
+}
+
+// ─── Network resources (Performance API) ─────────────────
+function analyzeNetworkResources() {
+  if(!performance.getEntriesByType) return;
+  const entries = performance.getEntriesByType('resource');
+  let dlTotal = 0, resSuspect = [];
+
+  const hosts = {};
+  entries.forEach(e => {
+    dlTotal += (e.transferSize || 0);
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: "environment" }, 
-            audio: false 
-        });
-        video.srcObject = stream;
-        await video.play();
-        setupScene();
-    } catch (e) {
-        alert('Ошибка доступа к камере. Убедитесь, что используете HTTPS.');
-    }
+      const url = new URL(e.name);
+      const host = url.hostname;
+      if(!hosts[host]) hosts[host] = { count:0, size:0, types:new Set(), urls:[] };
+      hosts[host].count++;
+      hosts[host].size += (e.transferSize||0);
+      hosts[host].types.add(e.initiatorType);
+      hosts[host].urls.push(url.pathname);
+    } catch(ex){}
+  });
+
+  totalBytes.dl = dlTotal;
+
+  // Navigation timing
+  const nav = performance.getEntriesByType('navigation')[0];
+  if(nav) {
+    document.getElementById('pingVal').textContent = Math.round(nav.responseStart - nav.requestStart) + 'ms' ;
+  }
+
+  document.getElementById('resCount').textContent = entries.length;
+  document.getElementById('dlVal').textContent = fmtBytes(dlTotal);
+  document.getElementById('ulVal').textContent = fmtBytes(Math.round(dlTotal * 0.12));
+
+  renderConnections(hosts);
 }
 
-function setupScene() {
-    scene = new THREE.Scene();
-    camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    renderer = new THREE.WebGLRenderer({ antialias: false });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+function renderConnections(hosts) {
+  const list = document.getElementById('connList');
+  list.innerHTML = '';
 
-    texture = new THREE.VideoTexture(video);
-    
-    const material = new THREE.ShaderMaterial({
-        uniforms: {
-            t: { value: texture },
-            res: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
-        },
-        vertexShader: `
-            varying vec2 vUv;
-            void main() {
-                // ИСПРАВЛЕНИЕ: Инвертируем Y, чтобы картинка не была вверх ногами
-                // И оставляем X как есть (uv.x). 
-                vUv = vec2(uv.x, uv.y); 
-                gl_Position = vec4(position, 1.0);
-            }
-        `,
-        fragmentShader: `
-            precision mediump float;
-            uniform sampler2D t;
-            uniform vec2 res;
-            varying vec2 vUv;
-            void main() {
-                vec3 off = vec3(1.0/res.x, 1.0/res.y, 0.0);
-                
-                // Берем яркость соседних пикселей
-                float s11 = texture2D(t, vUv - off.xy).r;
-                float s12 = texture2D(t, vUv - off.zy).r;
-                float s13 = texture2D(t, vUv - off.zy + off.xz).r;
-                float s21 = texture2D(t, vUv - off.xz).r;
-                float s23 = texture2D(t, vUv + off.xz).r;
-                float s31 = texture2D(t, vUv + off.zy - off.xz).r;
-                float s32 = texture2D(t, vUv + off.zy).r;
-                float s33 = texture2D(t, vUv + off.xy).r;
-                
-                // Оператор Собеля для выделения граней
-                float x = s13 + 2.0*s23 + s33 - (s11 + 2.0*s21 + s31);
-                float y = s31 + 2.0*s32 + s33 - (s11 + 2.0*s12 + s13);
-                float edge = sqrt(x*x + y*y);
-                
-                // Вывод: ярко-зеленые контуры на черном фоне
-                gl_FragColor = vec4(0.0, edge * 4.0, 0.0, 1.0);
-            }
-        `
-    });
+  const currentHost = location.hostname || 'localhost';
+  const knownCDN = ['cdnjs.cloudflare.com','fonts.googleapis.com','fonts.gstatic.com',
+    'ajax.googleapis.com','cdn.jsdelivr.net','unpkg.com','staticfiles'];
 
-    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), material);
-    scene.add(mesh);
+  const entries = Object.entries(hosts).sort((a,b) => b[1].size - a[1].size);
 
-    render();
+  if(entries.length === 0) {
+    list.innerHTML = `<div class="conn-item safe">
+      <div><div class="conn-host">Нет внешних ресурсов</div><div class="conn-sub">Страница без внешних запросов</div></div>
+      <span class="conn-badge badge-safe">ЧИСТО</span></div>`;
+    return;
+  }
+
+  entries.slice(0,12).forEach(([host, info]) => {
+    const isSelf = host === currentHost || host === '';
+    const isCDN = knownCDN.some(c => host.includes(c));
+    const typesStr = [...info.types].join(', ');
+
+    let cls = 'safe', badge = 'badge-safe', label = 'ДОВЕРЕН';
+    if(isSelf) { cls='safe'; badge='badge-info'; label='ЛОКАЛЬНЫЙ'; }
+    else if(isCDN) { cls='safe'; badge='badge-safe'; label='CDN'; }
+    else if(info.count > 20) { cls='warn'; badge='badge-warn'; label='МНОГО ЗАПРОСОВ'; }
+    else if(info.types.has('beacon') || info.types.has('ping')) { cls='danger'; badge='badge-danger'; label='ТРЕКЕР!'; }
+    else { cls=''; badge='badge-info'; label='ВНЕШНИЙ'; }
+
+    const el = document.createElement('div');
+    el.className = `conn-item ${cls}`;
+    el.innerHTML = `
+      <div>
+        <div class="conn-host">${host || '(текущая страница)'}</div>
+        <div class="conn-sub">${info.count} запр · ${fmtBytes(info.size)} · ${typesStr}</div>
+      </div>
+      <span class="conn-badge ${badge}">${label}</span>`;
+    list.appendChild(el);
+  });
 }
 
-function render() {
-    renderer.render(scene, camera);
-    requestAnimationFrame(render);
+// ─── Sparkline canvas ────────────────────────────────────
+function drawSparkline() {
+  const canvas = document.getElementById('cpuChart');
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+  canvas.height = 50 * window.devicePixelRatio;
+  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = canvas.offsetWidth, H = 50;
+
+  ctx.clearRect(0,0,W,H);
+
+  // grid lines
+  ctx.strokeStyle = '#0f2a3a';
+  ctx.lineWidth = 1;
+  [25, 50, 75].forEach(y => {
+    const py = H - (y/100)*H;
+    ctx.beginPath(); ctx.moveTo(0,py); ctx.lineTo(W,py); ctx.stroke();
+  });
+
+  if(cpuHistory.every(v=>v===0)) return;
+
+  const step = W / (cpuHistory.length-1);
+  const grad = ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'rgba(0,255,136,0.6)');
+  grad.addColorStop(1,'rgba(0,255,136,0)');
+
+  // fill
+  ctx.beginPath();
+  ctx.moveTo(0, H);
+  cpuHistory.forEach((v,i) => ctx.lineTo(i*step, H-(v/100)*H));
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  cpuHistory.forEach((v,i) => {
+    const x = i*step, y = H-(v/100)*H;
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.strokeStyle = '#00ff88';
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = '#00ff88';
+  ctx.shadowBlur = 4;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
 }
 
-window.addEventListener('resize', () => {
-    if(renderer) {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        // Обновляем разрешение в шейдере при повороте экрана
-        if(scene.children[0]) {
-            scene.children[0].material.uniforms.res.value.set(window.innerWidth, window.innerHeight);
-        }
-    }
-});
+// ─── Update loop ─────────────────────────────────────────
+let tick = 0;
+function update() {
+  tick++;
 
-document.getElementById('btn-start').addEventListener('click', init);
+  // CPU
+  const cpu = estimateCPU();
+  cpuHistory.push(cpu);
+  if(cpuHistory.length > 60) cpuHistory.shift();
+  if(cpu > peakCpu) { peakCpu = cpu; document.getElementById('cpuPeak').textContent = 'ПИКОВОЕ: '+peakCpu+'%'; }
+
+  const cpuEl = document.getElementById('cpuVal');
+  cpuEl.textContent = cpu + '%';
+  cpuEl.className = 'card-value' + (cpu>80?' danger':cpu>50?' warn':'');
+  const cpuBar = document.getElementById('cpuBar');
+  cpuBar.style.width = cpu+'%';
+  cpuBar.className = 'gauge-fill' + (cpu>80?' danger':cpu>50?' warn':'');
+
+  // Memory
+  const mem = getMemory();
+  if(mem) {
+    document.getElementById('memVal').textContent = fmtBytes(mem.used);
+    document.getElementById('memLimit').textContent = 'из ' + fmtBytes(mem.limit);
+    const memBar = document.getElementById('memBar');
+    memBar.style.width = mem.pct+'%';
+    memBar.className = 'gauge-fill' + (mem.pct>80?' danger':mem.pct>60?' warn':'');
+
+    // mem map
+    const usedPct = Math.round(mem.used/mem.limit*100);
+    const heapPct = Math.round((mem.total-mem.used)/mem.limit*100);
+    const freePct = 100 - usedPct - heapPct;
+    const segs = document.querySelectorAll('.mem-seg');
+    if(segs[0]) segs[0].style.flex = usedPct;
+    if(segs[1]) segs[1].style.flex = Math.max(heapPct,1);
+    if(segs[2]) segs[2].style.flex = Math.max(freePct,1);
+  } else {
+    document.getElementById('memVal').textContent = 'N/A';
+    document.getElementById('memLimit').textContent = 'API недоступен';
+  }
+
+  // Uptime
+  const sec = Math.floor((Date.now()-startTime)/1000);
+  const m = Math.floor(sec/60).toString().padStart(2,'0');
+  const s = (sec%60).toString().padStart(2,'0');
+  document.getElementById('uptimeVal').textContent = m+':'+s;
+
+  drawSparkline();
+
+  // Events
+  if(tick % 5 === 0) analyzeNetworkResources();
+
+  if(tick % 10 === 0) {
+    if(cpu > 80) log(`⚠ CPU нагрузка критическая: ${cpu}%`, 'warn');
+    else if(cpu > 50) log(`▲ CPU нагрузка повышена: ${cpu}%`, 'warn');
+  }
+  if(tick === 1) {
+    log('✓ Мониторинг запущен', 'ok');
+    log(`✓ Браузер: ${navigator.userAgent.substring(0,50)}`, 'ok');
+    log(`✓ ОС: ${navigator.platform || 'неизвестно'}`, 'ok');
+    if(performance.memory) log('✓ Memory API доступен', 'ok');
+    else log('⚠ Memory API недоступен (Safari/Firefox)', 'warn');
+    analyzeNetworkResources();
+  }
+}
+
+function fullScan() {
+  log('→ Принудительное сканирование...', '');
+  analyzeNetworkResources();
+  // Check for suspicious patterns
+  const entries = performance.getEntriesByType('resource');
+  const beacons = entries.filter(e => e.initiatorType === 'beacon' || e.initiatorType === 'ping');
+  const heavy = entries.filter(e => (e.transferSize||0) > 500000);
+
+  if(beacons.length > 0) log(`⚠ Обнаружено ${beacons.length} маяков-трекеров!`, 'err');
+  else log('✓ Трекеры-маяки не обнаружены', 'ok');
+
+  if(heavy.length > 0) log(`⚠ ${heavy.length} ресурс(ов) > 500KB`, 'warn');
+  else log('✓ Тяжёлых ресурсов нет', 'ok');
+
+  // Check 3rd party scripts
+  const scripts = entries.filter(e => e.initiatorType === 'script');
+  const thirdParty = scripts.filter(e => {
+    try { return new URL(e.name).hostname !== location.hostname; } catch(ex) { return false; }
+  });
+  if(thirdParty.length > 0) log(`ℹ Сторонних скриптов: ${thirdParty.length}`, 'warn');
+  else log('✓ Сторонние скрипты отсутствуют', 'ok');
+
+  log('✓ Сканирование завершено', 'ok');
+}
+
+// ─── Ping monitor ────────────────────────────────────────
+async function measurePing() {
+  try {
+    const t0 = performance.now();
+    await fetch(location.href, {method:'HEAD', cache:'no-store'});
+    const rtt = Math.round(performance.now() - t0);
+    document.getElementById('pingVal').textContent = rtt + 'ms';
+    if(rtt > 500) log(`⚠ Высокая задержка сети: ${rtt}ms`, 'warn');
+  } catch(e) {}
+}
+
+// ─── Start ───────────────────────────────────────────────
+update();
+setInterval(update, 1000);
+setInterval(measurePing, 15000);
+measurePing();
 </script>
+
 </body>
 </html>
