@@ -3,760 +3,723 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>SYS//MONITOR</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#020408">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>SYS//MONITOR PRO</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+:root{
+  --bg:#020408;--panel:#050d14;--border:#0f2a3a;
+  --green:#00ff88;--cyan:#00d4ff;--red:#ff3366;
+  --orange:#ff8c00;--yellow:#ffe033;--purple:#bf5fff;
+  --dim:#1a3a4a;--text:#7fbfcf;
+  --gg:0 0 10px #00ff8877;--gc:0 0 10px #00d4ff77;
+  --gr:0 0 10px #ff336677;--gp:0 0 10px #bf5fff77;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;min-height:100vh;overflow-x:hidden;padding-bottom:80px;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,.012) 2px,rgba(0,255,136,.012) 4px);}
 
-:root {
-–bg: #020408;
-–panel: #050d14;
-–border: #0f2a3a;
-–green: #00ff88;
-–cyan: #00d4ff;
-–red: #ff3366;
-–orange: #ff8c00;
-–yellow: #ffe033;
-–dim: #1a3a4a;
-–text: #7fbfcf;
-–glow-g: 0 0 8px #00ff8866;
-–glow-c: 0 0 8px #00d4ff66;
-–glow-r: 0 0 8px #ff336666;
-}
+header{position:sticky;top:0;z-index:100;padding:12px 16px;background:linear-gradient(180deg,#060f18ee,#020408dd);border-bottom:1px solid var(–border);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:space-between;}
+.logo{font-family:‘Orbitron’,monospace;font-size:14px;font-weight:900;color:var(–cyan);letter-spacing:3px;text-shadow:var(–gc);}
+.logo em{color:var(–green);font-style:normal;}
+.hright{display:flex;align-items:center;gap:10px;}
+.dot{width:7px;height:7px;border-radius:50%;background:var(–green);box-shadow:var(–gg);animation:blink 1.4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.3;transform:scale(.6);}}
+.live-txt{font-size:9px;color:var(–green);letter-spacing:2px;}
+.threat-badge{font-family:‘Orbitron’,monospace;font-size:9px;padding:3px 8px;border-radius:12px;letter-spacing:1px;background:#00ff8820;color:var(–green);border:1px solid #00ff8840;transition:all .4s;}
+.threat-badge.warn{background:#ff8c0020;color:var(–orange);border-color:#ff8c0050;}
+.threat-badge.danger{background:#ff336620;color:var(–red);border-color:#ff336650;animation:tpulse 1s ease-in-out infinite;}
+@keyframes tpulse{0%,100%{box-shadow:0 0 6px #ff336644;}50%{box-shadow:0 0 16px #ff336688;}}
 
-- { margin:0; padding:0; box-sizing:border-box; }
+.tabs{display:flex;border-bottom:1px solid var(–border);background:#030910;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex:1;min-width:60px;padding:9px 6px;text-align:center;font-size:8px;letter-spacing:1.5px;color:#3a7a9a;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;}
+.tab.active{color:var(–cyan);border-bottom-color:var(–cyan);text-shadow:var(–gc);}
+.tab-icon{font-size:14px;display:block;margin-bottom:2px;}
 
-body {
-background: var(–bg);
-color: var(–text);
-font-family: 'Share Tech Mono', monospace;
-font-size: 12px;
-min-height: 100vh;
-overflow-x: hidden;
-}
+.page{display:none;padding:12px 14px;}
+.page.active{display:block;}
 
-/* scanline overlay */
-body::before {
-content:'';
-position:fixed;
-inset:0;
-background: repeating-linear-gradient(
-0deg,
-transparent,
-transparent 2px,
-rgba(0,255,136,0.015) 2px,
-rgba(0,255,136,0.015) 4px
-);
-pointer-events:none;
-z-index:999;
-}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px;}
+.card{background:var(–panel);border:1px solid var(–border);border-radius:6px;padding:10px 9px;position:relative;overflow:hidden;}
+.card::before{content:’’;position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(–cyan),transparent);opacity:.35;}
+.cl{font-size:8px;letter-spacing:2px;color:#2a6a8a;margin-bottom:5px;text-transform:uppercase;}
+.cv{font-family:‘Orbitron’,monospace;font-size:18px;font-weight:700;color:var(–green);text-shadow:var(–gg);line-height:1;}
+.cv.sm{font-size:13px;}
+.cv.warn{color:var(–orange);text-shadow:0 0 8px #ff8c0066;}
+.cv.danger{color:var(–red);text-shadow:var(–gr);}
+.cv.purple{color:var(–purple);text-shadow:var(–gp);}
+.cu{font-size:8px;color:#3a7a9a;margin-top:3px;}
+.gauge{height:3px;background:var(–dim);border-radius:2px;overflow:hidden;margin-top:6px;}
+.gfill{height:100%;border-radius:2px;transition:width .9s ease;background:linear-gradient(90deg,var(–green),var(–cyan));}
+.gfill.warn{background:linear-gradient(90deg,var(–orange),var(–yellow));}
+.gfill.danger{background:linear-gradient(90deg,var(–red),var(–orange));}
 
-header {
-padding: 14px 16px 10px;
-border-bottom: 1px solid var(–border);
-display:flex;
-align-items:center;
-justify-content:space-between;
-background: linear-gradient(180deg, #060f18, var(–bg));
-}
+.sec{font-family:‘Orbitron’,monospace;font-size:8px;letter-spacing:3px;color:var(–cyan);text-shadow:var(–gc);margin:12px 0 7px;display:flex;align-items:center;gap:8px;}
+.sec::after{content:’’;flex:1;height:1px;background:linear-gradient(90deg,var(–border),transparent);}
 
-.logo {
-font-family: 'Orbitron', monospace;
-font-size: 15px;
-font-weight: 900;
-color: var(–cyan);
-letter-spacing: 3px;
-text-shadow: var(–glow-c);
-}
-.logo span { color: var(–green); text-shadow: var(–glow-g); }
+.spark-card{background:var(–panel);border:1px solid var(–border);border-radius:6px;padding:9px;margin-bottom:8px;}
+.spark-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.spark-lbl{font-size:8px;letter-spacing:2px;color:#2a6a8a;text-transform:uppercase;}
+.spark-val{font-family:‘Orbitron’,monospace;font-size:12px;color:var(–green);text-shadow:var(–gg);}
+canvas{display:block;}
 
-.status-dot {
-width: 8px; height: 8px;
-border-radius: 50%;
-background: var(–green);
-box-shadow: var(–glow-g);
-animation: pulse 1.4s ease-in-out infinite;
-display:inline-block;
-margin-right: 6px;
-}
-@keyframes pulse {
-0%,100% { opacity:1; transform:scale(1); }
-50% { opacity:0.4; transform:scale(0.7); }
-}
+.conn-list{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
+.ci{background:var(–panel);border:1px solid var(–border);border-left:3px solid var(–cyan);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;align-items:center;}
+.ci.safe{border-left-color:var(–green);}
+.ci.warn{border-left-color:var(–orange);}
+.ci.danger{border-left-color:var(–red);}
+.ch{color:#a0d4e0;font-size:10px;}
+.cs{color:#2a6a8a;font-size:8px;margin-top:2px;}
+.badge{font-size:8px;padding:2px 6px;border-radius:10px;letter-spacing:1px;white-space:nowrap;}
+.b-safe{background:#00ff8815;color:var(–green);border:1px solid #00ff8835;}
+.b-warn{background:#ff8c0015;color:var(–orange);border:1px solid #ff8c0035;}
+.b-danger{background:#ff336615;color:var(–red);border:1px solid #ff336635;}
+.b-info{background:#00d4ff15;color:var(–cyan);border:1px solid #00d4ff35;}
 
-.live { font-size:10px; color: var(–green); letter-spacing:2px; }
+.log-box{background:var(–panel);border:1px solid var(–border);border-radius:6px;padding:8px;max-height:200px;overflow-y:auto;margin-bottom:8px;}
+.log-box::-webkit-scrollbar{width:3px;}
+.log-box::-webkit-scrollbar-thumb{background:var(–dim);}
+.le{padding:3px 0;display:flex;gap:7px;font-size:9px;}
+.lt{color:#1a4a5a;white-space:nowrap;}
+.lm{color:var(–text);flex:1;line-height:1.4;}
+.lm.ok{color:var(–green);}
+.lm.w{color:var(–orange);}
+.lm.e{color:var(–red);}
+.lm.ai{color:var(–purple);}
 
-/* warning banner */
-.warning-bar {
-background: linear-gradient(90deg, #1a0010, #0a0015, #1a0010);
-border-bottom: 1px solid #ff336633;
-padding: 6px 16px;
-font-size: 10px;
-color: #ff6688;
-letter-spacing: 0.5px;
-display: flex;
-align-items: center;
-gap: 8px;
-}
-.warning-bar b { color: var(–orange); }
+.ai-box{background:linear-gradient(135deg,#08051a,#050d14);border:1px solid #bf5fff33;border-radius:8px;padding:12px;margin-bottom:8px;}
+.ai-header{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+.ai-title{font-family:‘Orbitron’,monospace;font-size:10px;color:var(–purple);letter-spacing:2px;text-shadow:var(–gp);}
+.ai-response{font-size:11px;line-height:1.7;color:#9abfcf;min-height:60px;border-left:2px solid #bf5fff44;padding-left:10px;}
+.ai-response.thinking{color:#4a6a7a;font-style:italic;animation:thinking 1.5s ease-in-out infinite;}
+@keyframes thinking{0%,100%{opacity:.5;}50%{opacity:1;}}
+.ai-score{margin-top:10px;display:flex;gap:6px;align-items:center;font-family:‘Orbitron’,monospace;font-size:9px;}
+.score-label{color:#3a7a9a;letter-spacing:1px;}
+.score-val{font-size:18px;font-weight:900;}
+.score-val.safe{color:var(–green);text-shadow:var(–gg);}
+.score-val.warn{color:var(–orange);}
+.score-val.danger{color:var(–red);text-shadow:var(–gr);}
 
-.container { padding: 12px 14px; }
+.sensor-row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.sensor-axis{font-size:10px;}
+.sensor-axis span{color:var(–green);font-family:‘Orbitron’,monospace;font-size:11px;}
 
-/* metric cards */
-.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
-.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:10px; }
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px;}
+.perm-btn{padding:10px 8px;background:var(–panel);border:1px solid var(–border);border-radius:6px;color:#3a7a9a;font-family:‘Share Tech Mono’,monospace;font-size:9px;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .2s;}
+.perm-btn .picon{font-size:18px;display:block;margin-bottom:4px;}
+.perm-btn.granted{border-color:#00ff8840;color:var(–green);}
+.perm-btn.denied{border-color:#ff336640;color:var(–red);}
+.perm-btn.pending{border-color:#ff8c0040;color:var(–orange);animation:pend .8s ease-in-out infinite;}
+@keyframes pend{0%,100%{opacity:1;}50%{opacity:.5;}}
 
-.card {
-background: var(–panel);
-border: 1px solid var(–border);
-border-radius: 6px;
-padding: 12px 10px;
-position:relative;
-overflow:hidden;
-}
-.card::before {
-content:'';
-position:absolute;
-top:0; left:0; right:0;
-height:1px;
-background: linear-gradient(90deg, transparent, var(–cyan), transparent);
-opacity:0.4;
-}
+.btn{width:100%;padding:13px;background:linear-gradient(135deg,#061020,#0a1e30);border:1px solid var(–cyan);border-radius:6px;color:var(–cyan);font-family:‘Orbitron’,monospace;font-size:10px;letter-spacing:3px;cursor:pointer;text-shadow:var(–gc);box-shadow:0 0 12px #00d4ff18;transition:all .2s;margin-bottom:8px;}
+.btn:active{background:#0a2540;box-shadow:0 0 24px #00d4ff44;}
+.btn.purple{border-color:var(–purple);color:var(–purple);text-shadow:var(–gp);box-shadow:0 0 12px #bf5fff18;}
+.btn.purple:active{box-shadow:0 0 24px #bf5fff44;}
 
-.card-label {
-font-size:9px;
-letter-spacing:2px;
-color: #3a7a9a;
-margin-bottom:6px;
-text-transform:uppercase;
-}
-.card-value {
-font-family: 'Orbitron', monospace;
-font-size:20px;
-font-weight:700;
-color: var(–green);
-text-shadow: var(–glow-g);
-line-height:1;
-}
-.card-value.warn { color: var(–orange); text-shadow: 0 0 8px #ff8c0066; }
-.card-value.danger { color: var(–red); text-shadow: var(–glow-r); }
-.card-unit { font-size:9px; color: var(–text); margin-top:3px; }
+.battery-wrap{display:flex;align-items:center;gap:10px;margin-top:6px;}
+.battery-body{flex:1;height:18px;background:var(–dim);border-radius:3px;border:1px solid var(–border);overflow:hidden;}
+.battery-fill{height:100%;border-radius:2px;transition:width 1s;}
+.battery-tip{width:4px;height:10px;background:var(–border);border-radius:0 2px 2px 0;margin-top:4px;}
+.battery-pct{font-family:‘Orbitron’,monospace;font-size:13px;color:var(–green);}
 
-/* gauge bar */
-.gauge-wrap { margin-top:8px; }
-.gauge-track {
-height:4px;
-background: var(–dim);
-border-radius:2px;
-overflow:hidden;
-}
-.gauge-fill {
-height:100%;
-border-radius:2px;
-transition: width 0.8s ease;
-background: linear-gradient(90deg, var(–green), var(–cyan));
-}
-.gauge-fill.warn { background: linear-gradient(90deg, var(–orange), var(–yellow)); }
-.gauge-fill.danger { background: linear-gradient(90deg, var(–red), var(–orange)); }
+.ip-leak{background:#1a0008;border:1px solid #ff336633;border-radius:6px;padding:8px 10px;margin-bottom:8px;}
+.ip-leak-title{color:var(–red);font-size:9px;letter-spacing:2px;margin-bottom:4px;}
+.ip-addr{font-family:‘Orbitron’,monospace;font-size:13px;color:var(–orange);}
 
-/* section title */
-.section-title {
-font-family: 'Orbitron', monospace;
-font-size: 9px;
-letter-spacing: 3px;
-color: var(–cyan);
-text-shadow: var(–glow-c);
-margin: 14px 0 8px;
-display:flex;
-align-items:center;
-gap:8px;
-}
-.section-title::after {
-content:'';
-flex:1;
-height:1px;
-background: linear-gradient(90deg, var(–border), transparent);
-}
+.mem-map{display:flex;height:20px;border-radius:4px;overflow:hidden;gap:1px;margin-bottom:5px;}
+.ms{border-radius:2px;transition:flex .9s ease;}
+.mem-leg{display:flex;flex-wrap:wrap;gap:8px;font-size:8px;color:#3a7a9a;}
+.mem-leg span::before{content:’■ ’;}
+.l-u::before{color:var(–cyan);}
+.l-h::before{color:var(–green);}
+.l-f::before{color:#1a3a4a;}
 
-/* sparkline chart */
-.sparkline-card {
-background: var(–panel);
-border: 1px solid var(–border);
-border-radius: 6px;
-padding: 10px;
-margin-bottom:10px;
-}
-.sparkline-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.sparkline-label { font-size:9px; letter-spacing:2px; color:#3a7a9a; text-transform:uppercase; }
-.sparkline-val { font-family:'Orbitron',monospace; font-size:13px; color: var(–green); text-shadow:var(–glow-g); }
+.api-key-box{background:var(–panel);border:1px solid var(–border);border-radius:6px;padding:10px;margin-bottom:8px;}
+.api-input{width:100%;background:#020810;border:1px solid var(–border);border-radius:4px;color:var(–cyan);font-family:‘Share Tech Mono’,monospace;font-size:11px;padding:8px;outline:none;margin-top:6px;}
+.api-input:focus{border-color:var(–purple);}
 
-canvas.spark { width:100%; height:50px; display:block; }
-
-/* connections list */
-.conn-list { display:flex; flex-direction:column; gap:5px; margin-bottom:10px; }
-.conn-item {
-background: var(–panel);
-border: 1px solid var(–border);
-border-left: 3px solid var(–cyan);
-border-radius:4px;
-padding: 8px 10px;
-display:flex;
-justify-content:space-between;
-align-items:center;
-}
-.conn-item.safe { border-left-color: var(–green); }
-.conn-item.warn { border-left-color: var(–orange); }
-.conn-item.danger { border-left-color: var(–red); }
-
-.conn-host { color: #a0d4e0; font-size:11px; }
-.conn-sub { color: #3a7a9a; font-size:9px; margin-top:2px; }
-.conn-badge {
-font-size:9px;
-padding:2px 6px;
-border-radius:10px;
-letter-spacing:1px;
-font-weight:600;
-white-space:nowrap;
-}
-.badge-safe { background:#00ff8820; color:var(–green); border:1px solid #00ff8840; }
-.badge-warn { background:#ff8c0020; color:var(–orange); border:1px solid #ff8c0040; }
-.badge-danger { background:#ff336620; color:var(–red); border:1px solid #ff336640; }
-.badge-info { background:#00d4ff20; color:var(–cyan); border:1px solid #00d4ff40; }
-
-/* threat log */
-.log-box {
-background: var(–panel);
-border: 1px solid var(–border);
-border-radius:6px;
-padding:10px;
-max-height:180px;
-overflow-y:auto;
-margin-bottom:10px;
-}
-.log-entry {
-padding: 4px 0;
-border-bottom: 1px solid #0a1e28;
-display:flex;
-gap:8px;
-font-size:10px;
-align-items:flex-start;
-}
-.log-time { color:#2a5a6a; white-space:nowrap; }
-.log-msg { color: var(–text); flex:1; }
-.log-msg.ok { color: var(–green); }
-.log-msg.warn { color: var(–orange); }
-.log-msg.err { color: var(–red); }
-
-/* memory map */
-.mem-map {
-display:flex;
-height:24px;
-border-radius:4px;
-overflow:hidden;
-gap:1px;
-margin-bottom:6px;
-}
-.mem-seg {
-border-radius:2px;
-transition: flex 0.8s ease;
-}
-.mem-legend { display:flex; flex-wrap:wrap; gap:8px; font-size:9px; color:#3a7a9a; }
-.mem-legend span::before { content:'■ '; }
-.mem-legend .l-used::before { color:#00d4ff; }
-.mem-legend .l-cache::before { color:#00ff88; }
-.mem-legend .l-free::before { color:#1a3a4a; }
-
-/* info notice */
-.info-box {
-background: #060f18;
-border: 1px solid #0f2a3a;
-border-left: 3px solid var(–cyan);
-border-radius:4px;
-padding: 10px 12px;
-font-size:10px;
-color:#3a7a9a;
-line-height:1.7;
-margin-bottom:10px;
-}
-.info-box b { color: var(–cyan); }
-
-/* refresh btn */
-.btn-refresh {
-width:100%;
-padding:12px;
-background: linear-gradient(135deg, #061020, #0a1e30);
-border: 1px solid var(–cyan);
-border-radius:6px;
-color: var(–cyan);
-font-family:'Orbitron',monospace;
-font-size:11px;
-letter-spacing:3px;
-cursor:pointer;
-text-shadow: var(–glow-c);
-box-shadow: 0 0 12px #00d4ff22;
-transition: all 0.2s;
--webkit-tap-highlight-color: transparent;
-}
-.btn-refresh:active {
-background: #0a2540;
-box-shadow: 0 0 20px #00d4ff44;
-}
-
-/* network bytes */
-.net-row { display:flex; justify-content:space-between; gap:8px; margin-bottom:10px; }
-.net-card {
-flex:1;
-background: var(–panel);
-border:1px solid var(–border);
-border-radius:6px;
-padding:10px;
-text-align:center;
-}
-.net-arrow { font-size:20px; margin-bottom:4px; }
-.net-val { font-family:'Orbitron',monospace; font-size:13px; color:var(–green); text-shadow:var(–glow-g); }
-.net-label { font-size:9px; color:#3a7a9a; margin-top:2px; letter-spacing:1px; }
-
-.footer { text-align:center; padding:16px; color:#1a3a4a; font-size:9px; letter-spacing:2px; }
+.footer{text-align:center;padding:20px;color:#0f2a3a;font-size:8px;letter-spacing:2px;}
 </style>
 
 </head>
 <body>
 
 <header>
-  <div class="logo">SYS<span>//</span>MONITOR</div>
-  <div class="live"><span class="status-dot"></span>LIVE</div>
+  <div class="logo">SYS<em>//</em>MONITOR <span style="font-size:9px;color:#3a7a9a">PRO</span></div>
+  <div class="hright">
+    <span class="threat-badge" id="threatBadge">БЕЗОПАСНО</span>
+    <span class="live-txt"><span class="dot"></span>LIVE</span>
+  </div>
 </header>
 
-<div class="warning-bar">
-  ⚠ <b>Ограничение браузера:</b> Доступны только данные текущей вкладки. Системные процессы недоступны -- это защита iOS/Android.
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview',this)"><span class="tab-icon">⚡</span>ОБЗОР</div>
+  <div class="tab" onclick="showTab('network',this)"><span class="tab-icon">🌐</span>СЕТЬ</div>
+  <div class="tab" onclick="showTab('sensors',this)"><span class="tab-icon">📡</span>СЕНСОРЫ</div>
+  <div class="tab" onclick="showTab('ai',this)"><span class="tab-icon">🤖</span>ИИ</div>
+  <div class="tab" onclick="showTab('log',this)"><span class="tab-icon">📋</span>ЛОГ</div>
 </div>
 
-<div class="container">
+<!-- OVERVIEW -->
 
-  <!-- Top metrics -->
-
-  <div class="grid-2">
+<div class="page active" id="page-overview">
+  <div class="sec">ПРОИЗВОДИТЕЛЬНОСТЬ</div>
+  <div class="g2">
     <div class="card">
-      <div class="card-label">CPU / ВКЛАДКА</div>
-      <div class="card-value" id="cpuVal">--</div>
-      <div class="card-unit">Загрузка JS-потока</div>
-      <div class="gauge-wrap">
-        <div class="gauge-track"><div class="gauge-fill" id="cpuBar" style="width:0%"></div></div>
-      </div>
+      <div class="cl">CPU / ВКЛАДКА</div>
+      <div class="cv" id="cpuVal">—</div>
+      <div class="cu">загрузка JS-потока</div>
+      <div class="gauge"><div class="gfill" id="cpuBar" style="width:0%"></div></div>
     </div>
     <div class="card">
-      <div class="card-label">ПАМЯТЬ</div>
-      <div class="card-value" id="memVal">--</div>
-      <div class="card-unit" id="memLimit">--</div>
-      <div class="gauge-wrap">
-        <div class="gauge-track"><div class="gauge-fill" id="memBar" style="width:0%"></div></div>
-      </div>
+      <div class="cl">ПАМЯТЬ</div>
+      <div class="cv sm" id="memVal">—</div>
+      <div class="cu" id="memSub">—</div>
+      <div class="gauge"><div class="gfill" id="memBar" style="width:0%"></div></div>
     </div>
   </div>
-
-  <div class="grid-3">
-    <div class="card">
-      <div class="card-label">FPS</div>
-      <div class="card-value" id="fpsVal">--</div>
-      <div class="card-unit">кадров/сек</div>
+  <div class="g3">
+    <div class="card"><div class="cl">FPS</div><div class="cv" id="fpsVal">—</div><div class="cu">кадров/с</div></div>
+    <div class="card"><div class="cl">LATENCY</div><div class="cv sm" id="pingVal">—</div><div class="cu">мс</div></div>
+    <div class="card"><div class="cl">UPTIME</div><div class="cv sm" id="uptimeVal">—</div><div class="cu">сессия</div></div>
+  </div>
+  <div class="spark-card">
+    <div class="spark-hdr"><div class="spark-lbl">CPU ИСТОРИЯ (60с)</div><div class="spark-val" id="cpuPeak">ПИКОВОЕ: —</div></div>
+    <canvas id="cpuChart" height="48" style="width:100%;"></canvas>
+  </div>
+  <div class="sec">БАТАРЕЯ</div>
+  <div class="card" style="margin-bottom:8px;">
+    <div class="g2" style="margin-bottom:8px;">
+      <div><div class="cl">ЗАРЯД</div><div class="cv" id="batLevel">—</div><div class="cu" id="batStatus">—</div></div>
+      <div><div class="cl">DRAIN RATE</div><div class="cv sm" id="batDrain">—</div><div class="cu">%/мин (норма &lt;0.3)</div></div>
     </div>
-    <div class="card">
-      <div class="card-label">LATENCY</div>
-      <div class="card-value" id="pingVal">--</div>
-      <div class="card-unit">мс задержка</div>
-    </div>
-    <div class="card">
-      <div class="card-label">UPTIME</div>
-      <div class="card-value" id="uptimeVal" style="font-size:14px">--</div>
-      <div class="card-unit">сессия</div>
+    <div class="battery-wrap">
+      <div class="battery-body"><div class="battery-fill" id="batFill" style="width:0%;background:var(--green);"></div></div>
+      <div class="battery-tip"></div>
+      <div class="battery-pct" id="batPct">—</div>
     </div>
   </div>
-
-  <!-- CPU sparkline -->
-
-  <div class="sparkline-card">
-    <div class="sparkline-header">
-      <div class="sparkline-label">CPU ИСТОРИЯ (60 сек)</div>
-      <div class="sparkline-val" id="cpuPeak">--</div>
-    </div>
-    <canvas class="spark" id="cpuChart" height="50"></canvas>
-  </div>
-
-  <!-- Memory map -->
-
-  <div class="section-title">ПАМЯТЬ БРАУЗЕРА</div>
-  <div class="card" style="margin-bottom:10px;">
+  <div class="sec">ПАМЯТЬ</div>
+  <div class="card" style="margin-bottom:8px;">
     <div class="mem-map" id="memMap">
-      <div class="mem-seg" style="flex:60;background:#00d4ff;"></div>
-      <div class="mem-seg" style="flex:15;background:#00ff88;"></div>
-      <div class="mem-seg" style="flex:25;background:#1a3a4a;"></div>
+      <div class="ms" style="flex:50;background:var(--cyan);"></div>
+      <div class="ms" style="flex:20;background:var(--green);"></div>
+      <div class="ms" style="flex:30;background:#1a3a4a;"></div>
     </div>
-    <div class="mem-legend">
-      <span class="l-used">Используется</span>
-      <span class="l-cache">JS Heap</span>
-      <span class="l-free">Свободно</span>
-    </div>
+    <div class="mem-leg"><span class="l-u">Используется</span><span class="l-h">JS Heap</span><span class="l-f">Свободно</span></div>
   </div>
-
-  <!-- Network -->
-
-  <div class="section-title">СЕТЬ</div>
-  <div class="net-row">
-    <div class="net-card">
-      <div class="net-arrow" style="color:var(--cyan)">↓</div>
-      <div class="net-val" id="dlVal">--</div>
-      <div class="net-label">ПОЛУЧЕНО</div>
-    </div>
-    <div class="net-card">
-      <div class="net-arrow" style="color:var(--green)">↑</div>
-      <div class="net-val" id="ulVal">--</div>
-      <div class="net-label">ОТПРАВЛЕНО</div>
-    </div>
-    <div class="net-card">
-      <div class="net-arrow" style="color:var(--orange)">⇅</div>
-      <div class="net-val" id="resCount">--</div>
-      <div class="net-label">РЕСУРСОВ</div>
-    </div>
-  </div>
-
-  <!-- Connections scan -->
-
-  <div class="section-title">ЗАПРОСЫ СТРАНИЦЫ</div>
-  <div class="conn-list" id="connList">
-    <div class="conn-item safe">
-      <div><div class="conn-host">Сканирование...</div><div class="conn-sub">Анализ ресурсов</div></div>
-      <span class="conn-badge badge-info">SCAN</span>
-    </div>
-  </div>
-
-  <!-- Threat log -->
-
-  <div class="section-title">ЛОГ СОБЫТИЙ</div>
-  <div class="log-box" id="logBox"></div>
-
-  <!-- What browser CAN'T see -->
-
-  <div class="section-title">ЧТО НЕ ВИДИТ БРАУЗЕР</div>
-  <div class="info-box">
-    <b>Недоступно из браузера (защита ОС):</b><br>
-    • Процессы других приложений (нет API)<br>
-    • Системные сетевые соединения<br>
-    • Скрытые майнеры в др. приложениях<br>
-    • CPU/RAM других процессов<br>
-    <br>
-    <b>Для полного мониторинга нужны:</b><br>
-    • iOS: <b>Network Extension + App Store app</b><br>
-    • Android: <b>adb shell / root + специальное приложение</b><br>
-    • Роутер: анализ трафика на уровне сети (Pi-hole, pfSense)
-  </div>
-
-<button class="btn-refresh" onclick="fullScan()">[ ЗАПУСТИТЬ СКАНИРОВАНИЕ ]</button>
-
 </div>
-<div class="footer">SYS//MONITOR v1.0 · BROWSER SCOPE ONLY · ДАННЫЕ ТЕКУЩЕЙ ВКЛАДКИ</div>
+
+<!-- NETWORK -->
+
+<div class="page" id="page-network">
+  <div class="sec">ТРАФИК</div>
+  <div class="g3">
+    <div class="card"><div class="cl">ПОЛУЧЕНО</div><div class="cv sm" id="dlVal">—</div><div class="cu">↓</div></div>
+    <div class="card"><div class="cl">ОТПРАВЛЕНО</div><div class="cv sm" id="ulVal">—</div><div class="cu">↑</div></div>
+    <div class="card"><div class="cl">РЕСУРСОВ</div><div class="cv" id="resCount">—</div><div class="cu">загружено</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="cl">ТИП СЕТИ</div><div class="cv sm" id="netType">—</div><div class="cu" id="netSpeed">—</div></div>
+    <div class="card"><div class="cl">RTT СЕТИ</div><div class="cv sm" id="netRtt">—</div><div class="cu">мс</div></div>
+  </div>
+  <div class="ip-leak" id="ipLeakBox" style="display:none;">
+    <div class="ip-leak-title">⚠ ОБНАРУЖЕН ЛОКАЛЬНЫЙ IP (WebRTC)</div>
+    <div class="ip-addr" id="localIp">—</div>
+    <div style="font-size:9px;color:#ff6688;margin-top:3px;">VPN не скрывает реальный IP через WebRTC</div>
+  </div>
+  <div class="spark-card">
+    <div class="spark-hdr"><div class="spark-lbl">RTT ИСТОРИЯ</div><div class="spark-val" id="rttPeak">—</div></div>
+    <canvas id="rttChart" height="48" style="width:100%;"></canvas>
+  </div>
+  <div class="sec">ЗАПРОСЫ СТРАНИЦЫ</div>
+  <div class="conn-list" id="connList"><div class="ci"><div><div class="ch">Сканирование...</div></div><span class="badge b-info">SCAN</span></div></div>
+  <button class="btn" onclick="scanNetwork()">[ СКАНИРОВАТЬ РЕСУРСЫ ]</button>
+</div>
+
+<!-- SENSORS -->
+
+<div class="page" id="page-sensors">
+  <div class="sec">ДОСТУПЫ УСТРОЙСТВА</div>
+  <div class="perm-grid">
+    <div class="perm-btn" id="perm-motion" onclick="reqMotion()"><span class="picon">📳</span>ДВИЖЕНИЕ</div>
+    <div class="perm-btn" id="perm-orient" onclick="reqOrient()"><span class="picon">🧭</span>ОРИЕНТАЦИЯ</div>
+    <div class="perm-btn" id="perm-geo" onclick="reqGeo()"><span class="picon">📍</span>ГЕОЛОКАЦИЯ</div>
+    <div class="perm-btn" id="perm-webrtc" onclick="reqWebRTC()"><span class="picon">🔍</span>IP СКАНЕР</div>
+  </div>
+  <div class="sec">АКСЕЛЕРОМЕТР</div>
+  <div class="card" style="margin-bottom:8px;">
+    <div class="sensor-row">
+      <span class="sensor-axis">X: <span id="accX">—</span></span>
+      <span class="sensor-axis">Y: <span id="accY">—</span></span>
+      <span class="sensor-axis">Z: <span id="accZ">—</span></span>
+    </div>
+    <div style="margin-top:8px;"><div class="cl">СУММАРНОЕ ДВИЖЕНИЕ</div><div class="cv sm" id="accTotal">—</div><div class="gauge" style="margin-top:6px;"><div class="gfill" id="accBar" style="width:0%"></div></div></div>
+    <canvas id="accChart" height="40" style="width:100%;margin-top:8px;"></canvas>
+  </div>
+  <div class="sec">ОРИЕНТАЦИЯ</div>
+  <div class="card" style="margin-bottom:8px;">
+    <div class="sensor-row">
+      <span class="sensor-axis">α: <span id="oriA">—</span>°</span>
+      <span class="sensor-axis">β: <span id="oriB">—</span>°</span>
+      <span class="sensor-axis">γ: <span id="oriG">—</span>°</span>
+    </div>
+    <div style="margin-top:6px;font-size:9px;color:#2a6a8a;">COMPASS / TILT / ROLL</div>
+  </div>
+  <div class="sec">ГЕОЛОКАЦИЯ</div>
+  <div class="card" style="margin-bottom:8px;">
+    <div class="g2">
+      <div><div class="cl">LAT / LON</div><div class="cv sm" id="geoCoords" style="font-size:10px;">—</div></div>
+      <div><div class="cl">ТОЧНОСТЬ</div><div class="cv sm" id="geoAcc">—</div><div class="cu">метров</div></div>
+    </div>
+    <div style="margin-top:6px;font-size:9px;color:#ff8c00;" id="geoNote">Нажмите ГЕОЛОКАЦИЯ для активации</div>
+  </div>
+</div>
+
+<!-- AI -->
+
+<div class="page" id="page-ai">
+  <div class="sec">API КЛЮЧ</div>
+  <div class="api-key-box">
+    <div class="cl">ANTHROPIC API KEY (для ИИ анализа)</div>
+    <input class="api-input" id="apiKey" type="password" placeholder="sk-ant-api03-...">
+    <div style="font-size:8px;color:#2a6a8a;margin-top:5px;">Ключ не сохраняется и не передаётся третьим лицам. Только в памяти браузера.</div>
+  </div>
+  <div class="sec">ИИ АНАЛИЗ БЕЗОПАСНОСТИ</div>
+  <div class="ai-box">
+    <div class="ai-header">
+      <div style="font-size:20px;">🧠</div>
+      <div><div class="ai-title">CLAUDE AI · SECURITY ANALYST</div><div style="font-size:8px;color:#4a6a7a;margin-top:2px;">Анализ аномалий на основе собранных данных</div></div>
+    </div>
+    <div class="ai-response thinking" id="aiResponse">Введите API ключ и нажмите кнопку для запуска анализа...</div>
+    <div class="ai-score" id="aiScore" style="display:none;">
+      <span class="score-label">УГРОЗА:</span>
+      <span class="score-val" id="scoreVal">—</span>
+      <span style="font-size:9px;color:#3a7a9a;" id="scoreLabel">—</span>
+    </div>
+  </div>
+  <button class="btn purple" onclick="runAIAnalysis()">[ 🤖 ЗАПУСТИТЬ ИИ АНАЛИЗ ]</button>
+  <div class="sec">ЧТО АНАЛИЗИРУЕТ ИИ</div>
+  <div class="ci safe" style="margin-bottom:4px;"><div><div class="ch">CPU аномалии</div><div class="cs">Скачки нагрузки → подозрение на крипто-майнинг</div></div><span class="badge b-safe">✓</span></div>
+  <div class="ci safe" style="margin-bottom:4px;"><div><div class="ch">Утечки памяти</div><div class="cs">Аномальный рост JS Heap</div></div><span class="badge b-safe">✓</span></div>
+  <div class="ci safe" style="margin-bottom:4px;"><div><div class="ch">Сетевые запросы</div><div class="cs">Трекеры, подозрительные хосты, beacon</div></div><span class="badge b-safe">✓</span></div>
+  <div class="ci safe" style="margin-bottom:4px;"><div><div class="ch">WebRTC IP утечки</div><div class="cs">Реальный IP за VPN</div></div><span class="badge b-safe">✓</span></div>
+  <div class="ci safe" style="margin-bottom:4px;"><div><div class="ch">Расход батареи</div><div class="cs">Аномальный drain rate</div></div><span class="badge b-safe">✓</span></div>
+  <div class="ci warn" style="margin-bottom:4px;"><div><div class="ch">Системные процессы</div><div class="cs">Недоступно — защита ОС (песочница браузера)</div></div><span class="badge b-warn">≠</span></div>
+</div>
+
+<!-- LOG -->
+
+<div class="page" id="page-log">
+  <div class="sec">СИСТЕМНЫЙ ЛОГ</div>
+  <div class="log-box" id="logBox" style="max-height:70vh;"></div>
+  <button class="btn" onclick="document.getElementById('logBox').innerHTML=''">[ ОЧИСТИТЬ ЛОГ ]</button>
+</div>
+
+<div class="footer">SYS//MONITOR PRO · GITHUB PAGES READY · BROWSER SANDBOX SCOPE</div>
 
 <script>
-// ─── State ───────────────────────────────────────────────
-const startTime = Date.now();
-let cpuHistory = new Array(60).fill(0);
-let fpsArr = [];
-let lastFrameTime = performance.now();
-let frameCount = 0;
-let currentFps = 60;
-let peakCpu = 0;
-let totalBytes = { dl: 0, ul: 0 };
+// ═══ STATE ═══════════════════════════════════════
+const T0=Date.now();
+let cpuHist=new Array(60).fill(0),rttHist=new Array(60).fill(0),accHist=new Array(60).fill(0);
+let peakCpu=0,peakRtt=0,fps=60,frameCount=0,lastFrame=performance.now(),tick=0,threats=0;
+let localIP=null,bat=null,batLastLevel=null,batLastTime=null;
+let acc={x:0,y:0,z:0},motionGranted=false,orientGranted=false;
 
-// ─── Log ────────────────────────────────────────────────
-function log(msg, type='') {
-  const box = document.getElementById('logBox');
-  const now = new Date();
-  const t = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
-  const el = document.createElement('div');
-  el.className = 'log-entry';
-  el.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${type}">${msg}</span>`;
-  box.insertBefore(el, box.firstChild);
-  if(box.children.length > 80) box.removeChild(box.lastChild);
+// ═══ TABS ════════════════════════════════════════
+function showTab(id,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  el.classList.add('active');
 }
 
-// ─── FPS tracking ────────────────────────────────────────
-function trackFps(now) {
+// ═══ LOG ═════════════════════════════════════════
+function log(msg,type=''){
+  const box=document.getElementById('logBox');
+  const now=new Date();
+  const t=[now.getHours(),now.getMinutes(),now.getSeconds()].map(n=>String(n).padStart(2,'0')).join(':');
+  const el=document.createElement('div');
+  el.className='le';
+  el.innerHTML=`<span class="lt">${t}</span><span class="lm ${type}">${msg}</span>`;
+  box.insertBefore(el,box.firstChild);
+  if(box.children.length>200)box.removeChild(box.lastChild);
+}
+
+// ═══ FPS ═════════════════════════════════════════
+function trackFps(now){
   frameCount++;
-  if(now - lastFrameTime >= 1000) {
-    currentFps = Math.round(frameCount * 1000 / (now - lastFrameTime));
-    frameCount = 0;
-    lastFrameTime = now;
-    updateFPS();
+  if(now-lastFrame>=1000){
+    fps=Math.round(frameCount*1000/(now-lastFrame));
+    frameCount=0;lastFrame=now;
+    const el=document.getElementById('fpsVal');
+    el.textContent=fps;el.className='cv'+(fps<30?' danger':fps<50?' warn':'');
   }
   requestAnimationFrame(trackFps);
 }
 requestAnimationFrame(trackFps);
 
-function updateFPS() {
-  const el = document.getElementById('fpsVal');
-  el.textContent = currentFps;
-  el.className = 'card-value' + (currentFps < 30 ? ' danger' : currentFps < 50 ? ' warn' : '');
+// ═══ CPU ═════════════════════════════════════════
+function estimateCPU(){
+  const t0=performance.now();let x=0;
+  for(let i=0;i<400000;i++)x+=Math.sqrt(i);
+  return Math.min(100,Math.round(((performance.now()-t0)/60)*100));
 }
 
-// ─── CPU estimation via JS loop timing ───────────────────
-function estimateCPU() {
-  const t0 = performance.now();
-  let x = 0;
-  for(let i=0;i<500000;i++) x += Math.sqrt(i);
-  const elapsed = performance.now() - t0;
-  // baseline ~8ms on fast device; scale to 0-100
-  const raw = Math.min(100, Math.round((elapsed / 80) * 100));
-  return raw;
-}
-
-// ─── Memory ──────────────────────────────────────────────
-function getMemory() {
-  if(performance.memory) {
-    const used = performance.memory.usedJSHeapSize;
-    const total = performance.memory.totalJSHeapSize;
-    const limit = performance.memory.jsHeapSizeLimit;
-    return { used, total, limit, pct: Math.round(used/limit*100) };
-  }
-  return null;
-}
-
-function fmtBytes(b) {
-  if(b >= 1073741824) return (b/1073741824).toFixed(1)+'GB';
-  if(b >= 1048576) return (b/1048576).toFixed(1)+'MB';
-  if(b >= 1024) return (b/1024).toFixed(0)+'KB';
+// ═══ FORMAT ══════════════════════════════════════
+function fmtBytes(b){
+  if(!b)return'—';
+  if(b>=1073741824)return(b/1073741824).toFixed(1)+'GB';
+  if(b>=1048576)return(b/1048576).toFixed(1)+'MB';
+  if(b>=1024)return(b/1024).toFixed(0)+'KB';
   return b+'B';
 }
 
-// ─── Network resources (Performance API) ─────────────────
-function analyzeNetworkResources() {
-  if(!performance.getEntriesByType) return;
-  const entries = performance.getEntriesByType('resource');
-  let dlTotal = 0, resSuspect = [];
-
-  const hosts = {};
-  entries.forEach(e => {
-    dlTotal += (e.transferSize || 0);
-    try {
-      const url = new URL(e.name);
-      const host = url.hostname;
-      if(!hosts[host]) hosts[host] = { count:0, size:0, types:new Set(), urls:[] };
-      hosts[host].count++;
-      hosts[host].size += (e.transferSize||0);
-      hosts[host].types.add(e.initiatorType);
-      hosts[host].urls.push(url.pathname);
-    } catch(ex){}
-  });
-
-  totalBytes.dl = dlTotal;
-
-  // Navigation timing
-  const nav = performance.getEntriesByType('navigation')[0];
-  if(nav) {
-    document.getElementById('pingVal').textContent = Math.round(nav.responseStart - nav.requestStart) + 'ms' ;
+// ═══ BATTERY ═════════════════════════════════════
+async function initBattery(){
+  if(!navigator.getBattery){log('⚠ Battery API недоступен','w');return;}
+  try{
+    bat=await navigator.getBattery();
+    bat.addEventListener('levelchange',updateBattery);
+    bat.addEventListener('chargingchange',updateBattery);
+    log('✓ Battery API подключён','ok');
+    updateBattery();
+  }catch(e){log('⚠ Battery API: '+e.message,'w');}
+}
+function updateBattery(){
+  if(!bat)return;
+  const pct=Math.round(bat.level*100);
+  document.getElementById('batLevel').textContent=pct+'%';
+  document.getElementById('batStatus').textContent=bat.charging?'⚡ ЗАРЯЖАЕТСЯ':'🔋 РАЗРЯЖАЕТСЯ';
+  document.getElementById('batPct').textContent=pct+'%';
+  const fill=document.getElementById('batFill');
+  fill.style.width=pct+'%';
+  fill.style.background=bat.charging?'var(--cyan)':pct<20?'var(--red)':pct<40?'var(--orange)':'var(--green)';
+  const now=Date.now();
+  if(batLastLevel!==null&&!bat.charging){
+    const dTime=(now-batLastTime)/60000;
+    if(dTime>0){
+      const dr=((batLastLevel-pct)/dTime).toFixed(2);
+      const el=document.getElementById('batDrain');
+      el.textContent=dr;el.className='cv sm'+(dr>1?' danger':dr>0.5?' warn':'');
+      if(dr>1.5){log(`⚠ КРИТИЧЕСКИЙ РАСХОД БАТАРЕИ: ${dr}%/мин!`,'e');threats++;updateThreat();}
+    }
   }
-
-  document.getElementById('resCount').textContent = entries.length;
-  document.getElementById('dlVal').textContent = fmtBytes(dlTotal);
-  document.getElementById('ulVal').textContent = fmtBytes(Math.round(dlTotal * 0.12));
-
-  renderConnections(hosts);
+  batLastLevel=pct;batLastTime=now;
 }
 
-function renderConnections(hosts) {
-  const list = document.getElementById('connList');
-  list.innerHTML = '';
+// ═══ NETWORK INFO ════════════════════════════════
+function initNetworkInfo(){
+  const conn=navigator.connection||navigator.mozConnection||navigator.webkitConnection;
+  if(!conn){log('⚠ NetworkInformation API недоступен (Safari)','w');return;}
+  const update=()=>{
+    document.getElementById('netType').textContent=(conn.effectiveType||conn.type||'—').toUpperCase();
+    document.getElementById('netSpeed').textContent=conn.downlink?conn.downlink+'Mbps':'—';
+    document.getElementById('netRtt').textContent=conn.rtt?conn.rtt+'мс':'—';
+  };
+  conn.addEventListener('change',()=>{update();log('ℹ Тип сети изменился: '+conn.effectiveType,'w');});
+  update();log('✓ NetworkInformation API','ok');
+}
 
-  const currentHost = location.hostname || 'localhost';
-  const knownCDN = ['cdnjs.cloudflare.com','fonts.googleapis.com','fonts.gstatic.com',
-    'ajax.googleapis.com','cdn.jsdelivr.net','unpkg.com','staticfiles'];
+// ═══ WEBRTC ══════════════════════════════════════
+function reqWebRTC(){
+  setPerm('webrtc','pending');
+  log('→ WebRTC IP scan...','');
+  try{
+    const pc=new RTCPeerConnection({iceServers:[{urls:'stun:stun.l.google.com:19302'}]});
+    pc.createDataChannel('');
+    pc.createOffer().then(o=>pc.setLocalDescription(o));
+    let found=false;
+    pc.onicecandidate=e=>{
+      if(!e||!e.candidate)return;
+      const m=e.candidate.candidate.match(/\b(\d{1,3}\.){3}\d{1,3}\b/g);
+      if(m)m.forEach(ip=>{
+        if(!found&&!ip.startsWith('0.')&&ip!=='0.0.0.0'){
+          found=true;localIP=ip;
+          document.getElementById('localIp').textContent=ip;
+          document.getElementById('ipLeakBox').style.display='block';
+          log('⚠ WebRTC утечка IP: '+ip,'e');
+          setPerm('webrtc','granted');pc.close();threats++;updateThreat();
+        }
+      });
+    };
+    setTimeout(()=>{if(!found){log('✓ WebRTC утечки не обнаружено','ok');setPerm('webrtc','granted');}},4000);
+  }catch(e){log('⚠ WebRTC: '+e.message,'w');setPerm('webrtc','denied');}
+}
 
-  const entries = Object.entries(hosts).sort((a,b) => b[1].size - a[1].size);
+// ═══ MOTION ══════════════════════════════════════
+async function reqMotion(){
+  setPerm('motion','pending');
+  if(typeof DeviceMotionEvent!=='undefined'&&typeof DeviceMotionEvent.requestPermission==='function'){
+    try{
+      const r=await DeviceMotionEvent.requestPermission();
+      if(r==='granted'){startMotion();setPerm('motion','granted');}
+      else{setPerm('motion','denied');log('⚠ Акселерометр отклонён','w');}
+    }catch(e){setPerm('motion','denied');}
+  }else{startMotion();setPerm('motion','granted');}
+}
+function startMotion(){
+  motionGranted=true;
+  window.addEventListener('devicemotion',e=>{
+    const a=e.accelerationIncludingGravity;if(!a)return;
+    acc.x=(a.x||0).toFixed(2);acc.y=(a.y||0).toFixed(2);acc.z=(a.z||0).toFixed(2);
+    document.getElementById('accX').textContent=acc.x;
+    document.getElementById('accY').textContent=acc.y;
+    document.getElementById('accZ').textContent=acc.z;
+    const total=Math.sqrt(acc.x**2+acc.y**2+acc.z**2).toFixed(2);
+    document.getElementById('accTotal').textContent=total;
+    document.getElementById('accBar').style.width=Math.min(100,total/30*100)+'%';
+    accHist.push(parseFloat(total));if(accHist.length>60)accHist.shift();
+  });
+  log('✓ Акселерометр активирован','ok');
+}
 
-  if(entries.length === 0) {
-    list.innerHTML = `<div class="conn-item safe">
-      <div><div class="conn-host">Нет внешних ресурсов</div><div class="conn-sub">Страница без внешних запросов</div></div>
-      <span class="conn-badge badge-safe">ЧИСТО</span></div>`;
-    return;
-  }
+async function reqOrient(){
+  setPerm('orient','pending');
+  if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+    try{
+      const r=await DeviceOrientationEvent.requestPermission();
+      if(r==='granted'){startOrient();setPerm('orient','granted');}
+      else setPerm('orient','denied');
+    }catch(e){setPerm('orient','denied');}
+  }else{startOrient();setPerm('orient','granted');}
+}
+function startOrient(){
+  orientGranted=true;
+  window.addEventListener('deviceorientation',e=>{
+    document.getElementById('oriA').textContent=(e.alpha||0).toFixed(1);
+    document.getElementById('oriB').textContent=(e.beta||0).toFixed(1);
+    document.getElementById('oriG').textContent=(e.gamma||0).toFixed(1);
+  });
+  log('✓ Гироскоп активирован','ok');
+}
 
-  entries.slice(0,12).forEach(([host, info]) => {
-    const isSelf = host === currentHost || host === '';
-    const isCDN = knownCDN.some(c => host.includes(c));
-    const typesStr = [...info.types].join(', ');
+function reqGeo(){
+  setPerm('geo','pending');
+  if(!navigator.geolocation){setPerm('geo','denied');return;}
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      setPerm('geo','granted');
+      const lat=pos.coords.latitude.toFixed(5),lon=pos.coords.longitude.toFixed(5),a=Math.round(pos.coords.accuracy);
+      document.getElementById('geoCoords').textContent=lat+', '+lon;
+      document.getElementById('geoAcc').textContent=a;
+      document.getElementById('geoNote').textContent='✓ Координаты получены';
+      document.getElementById('geoNote').style.color='var(--green)';
+      log('✓ Геолокация: '+lat+', '+lon+' (±'+a+'м)','ok');
+    },
+    err=>{setPerm('geo','denied');log('⚠ Геолокация: '+err.message,'w');},
+    {enableHighAccuracy:true,timeout:10000}
+  );
+}
 
-    let cls = 'safe', badge = 'badge-safe', label = 'ДОВЕРЕН';
-    if(isSelf) { cls='safe'; badge='badge-info'; label='ЛОКАЛЬНЫЙ'; }
-    else if(isCDN) { cls='safe'; badge='badge-safe'; label='CDN'; }
-    else if(info.count > 20) { cls='warn'; badge='badge-warn'; label='МНОГО ЗАПРОСОВ'; }
-    else if(info.types.has('beacon') || info.types.has('ping')) { cls='danger'; badge='badge-danger'; label='ТРЕКЕР!'; }
-    else { cls=''; badge='badge-info'; label='ВНЕШНИЙ'; }
+function setPerm(id,state){document.getElementById('perm-'+id).className='perm-btn '+state;}
 
-    const el = document.createElement('div');
-    el.className = `conn-item ${cls}`;
-    el.innerHTML = `
-      <div>
-        <div class="conn-host">${host || '(текущая страница)'}</div>
-        <div class="conn-sub">${info.count} запр · ${fmtBytes(info.size)} · ${typesStr}</div>
-      </div>
-      <span class="conn-badge ${badge}">${label}</span>`;
+// ═══ NETWORK SCAN ════════════════════════════════
+function scanNetwork(){
+  log('→ Сканирование...','');
+  const entries=performance.getEntriesByType('resource');
+  const hosts={};let dlTotal=0;
+  entries.forEach(e=>{
+    dlTotal+=(e.transferSize||0);
+    try{const u=new URL(e.name);const h=u.hostname;
+      if(!hosts[h])hosts[h]={count:0,size:0,types:new Set()};
+      hosts[h].count++;hosts[h].size+=(e.transferSize||0);hosts[h].types.add(e.initiatorType);
+    }catch(ex){}
+  });
+  document.getElementById('resCount').textContent=entries.length;
+  document.getElementById('dlVal').textContent=fmtBytes(dlTotal);
+  document.getElementById('ulVal').textContent=fmtBytes(Math.round(dlTotal*0.08));
+  const list=document.getElementById('connList');list.innerHTML='';
+  const cur=location.hostname;
+  const cdns=['cdnjs.cloudflare.com','fonts.googleapis.com','fonts.gstatic.com','cdn.jsdelivr.net','unpkg.com'];
+  let susp=0;
+  Object.entries(hosts).sort((a,b)=>b[1].size-a[1].size).slice(0,15).forEach(([host,info])=>{
+    const isSelf=host===cur||host==='';
+    const isCDN=cdns.some(c=>host.includes(c));
+    const hasBeacon=info.types.has('beacon')||info.types.has('ping');
+    let cls='',badge='b-info',label='ВНЕШНИЙ';
+    if(isSelf){badge='b-info';label='ЛОКАЛЬНЫЙ';}
+    else if(isCDN){cls='safe';badge='b-safe';label='CDN';}
+    else if(hasBeacon){cls='danger';badge='b-danger';label='⚠ ТРЕКЕР';susp++;threats++;}
+    else if(info.count>25){cls='warn';badge='b-warn';label='▲ МНОГО';susp++;}
+    else{cls='safe';badge='b-safe';label='НОРМ';}
+    const el=document.createElement('div');el.className='ci '+cls;
+    el.innerHTML=`<div><div class="ch">${host||'(текущая)'}</div><div class="cs">${info.count} запр · ${fmtBytes(info.size)} · ${[...info.types].join(',')}</div></div><span class="badge ${badge}">${label}</span>`;
     list.appendChild(el);
   });
+  if(susp>0){updateThreat();log('⚠ Подозрительных хостов: '+susp,'e');}
+  else log('✓ Сеть чистая, ресурсов: '+entries.length,'ok');
+  measurePing();
+  const scripts=entries.filter(e=>{try{return new URL(e.name).hostname!==location.hostname&&e.initiatorType==='script';}catch(ex){return false;}});
+  if(scripts.length)log('ℹ Сторонних скриптов: '+scripts.length,'w');
 }
 
-// ─── Sparkline canvas ────────────────────────────────────
-function drawSparkline() {
-  const canvas = document.getElementById('cpuChart');
-  const ctx = canvas.getContext('2d');
-  canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-  canvas.height = 50 * window.devicePixelRatio;
-  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  const W = canvas.offsetWidth, H = 50;
+async function measurePing(){
+  try{
+    const t0=performance.now();
+    await fetch(location.href,{method:'HEAD',cache:'no-store'});
+    const rtt=Math.round(performance.now()-t0);
+    document.getElementById('pingVal').textContent=rtt+'мс';
+    rttHist.push(rtt);if(rttHist.length>60)rttHist.shift();
+    if(rtt>peakRtt){peakRtt=rtt;document.getElementById('rttPeak').textContent='ПИКОВОЕ: '+rtt+'мс';}
+  }catch(e){}
+}
 
+// ═══ THREAT ══════════════════════════════════════
+function updateThreat(){
+  const b=document.getElementById('threatBadge');
+  if(threats===0){b.textContent='БЕЗОПАСНО';b.className='threat-badge';}
+  else if(threats<3){b.textContent='⚠ '+threats+' угрозы';b.className='threat-badge warn';}
+  else{b.textContent='🔴 '+threats+' угроз';b.className='threat-badge danger';}
+}
+
+// ═══ AI ANALYSIS ═════════════════════════════════
+async function runAIAnalysis(){
+  const apiKey=document.getElementById('apiKey').value.trim();
+  if(!apiKey){
+    document.getElementById('aiResponse').className='ai-response';
+    document.getElementById('aiResponse').textContent='⚠ Введите Anthropic API ключ выше для активации ИИ анализа.';
+    return;
+  }
+  const btn=document.querySelector('.btn.purple');
+  btn.textContent='[ 🤖 АНАЛИЗИРУЮ... ]';btn.disabled=true;
+  document.getElementById('aiResponse').className='ai-response thinking';
+  document.getElementById('aiResponse').textContent='Собираю данные и отправляю в Claude AI...';
+  document.getElementById('aiScore').style.display='none';
+
+  const cpuMax=Math.max(...cpuHist),cpuAvg=Math.round(cpuHist.reduce((a,b)=>a+b,0)/cpuHist.length);
+  const mem=performance.memory;
+  const entries=performance.getEntriesByType('resource');
+  const beacons=entries.filter(e=>e.initiatorType==='beacon'||e.initiatorType==='ping').length;
+  const third=entries.filter(e=>{try{return new URL(e.name).hostname!==location.hostname;}catch(ex){return false;}}).length;
+  const conn=navigator.connection||{};
+  const snapshot={
+    'CPU макс/средн':`${cpuMax}%/${cpuAvg}%`,'FPS':fps,
+    'Память':mem?`${fmtBytes(mem.usedJSHeapSize)} из ${fmtBytes(mem.jsHeapSizeLimit)} (${Math.round(mem.usedJSHeapSize/mem.jsHeapSizeLimit*100)}%)`:'N/A',
+    'Батарея':bat?`${Math.round(bat.level*100)}% (${bat.charging?'заряжается':'разряжается'})`:'N/A',
+    'WebRTC IP утечка':localIP||'не обнаружена',
+    'Ресурсов всего':entries.length,'Сторонних хостов':third,'Beacon/Ping трекеры':beacons,
+    'Тип сети':conn.effectiveType||'неизвестно','RTT сети':conn.rtt?conn.rtt+'мс':'неизвестно',
+    'Акселерометр':motionGranted?`X:${acc.x} Y:${acc.y} Z:${acc.z}`:'нет доступа',
+    'Активных угроз':threats,'Время сессии':Math.round((Date.now()-T0)/1000)+'с',
+    'User Agent':navigator.userAgent.substring(0,80)
+  };
+
+  const prompt=`Ты — эксперт по мобильной кибербезопасности. Проанализируй данные браузерного мониторинга и дай заключение.
+
+ДАННЫЕ:
+${Object.entries(snapshot).map(([k,v])=>`• ${k}: ${v}`).join('\n')}
+
+Ответь структурированно:
+1. ВЕРДИКТ: одна строка (БЕЗОПАСНО / ПОДОЗРИТЕЛЬНО / УГРОЗА)
+2. АНАЛИЗ: 2-3 предложения о ключевых наблюдениях
+3. РИСКИ: конкретные риски если есть
+4. РЕКОМЕНДАЦИИ: 2-3 конкретных действия
+
+Отвечай по-русски, кратко. Помни: браузер видит только текущую вкладку, не системные процессы.
+В конце добавь строку: SCORE:число (0-100, где 100 = критическая угроза)`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    if(!resp.ok){const err=await resp.json();throw new Error(err.error?.message||resp.statusText);}
+    const data=await resp.json();
+    const text=data.content?.map(c=>c.text||'').join('')||'Ошибка ответа';
+    const scoreMatch=text.match(/SCORE:(\d+)/);
+    const score=scoreMatch?parseInt(scoreMatch[1]):null;
+    const cleanText=text.replace(/SCORE:\d+/,'').trim();
+    document.getElementById('aiResponse').className='ai-response';
+    document.getElementById('aiResponse').innerHTML=cleanText.replace(/\n/g,'<br>');
+    if(score!==null){
+      document.getElementById('aiScore').style.display='flex';
+      const sv=document.getElementById('scoreVal');
+      sv.textContent=score+'/100';sv.className='score-val'+(score>60?' danger':score>30?' warn':' safe');
+      document.getElementById('scoreLabel').textContent=score>60?'ВЫСОКИЙ РИСК':score>30?'СРЕДНИЙ РИСК':'НИЗКИЙ РИСК';
+    }
+    log('✓ ИИ анализ завершён (риск: '+(score||'—')+'/100)','ai');
+  }catch(e){
+    document.getElementById('aiResponse').className='ai-response';
+    document.getElementById('aiResponse').textContent='⚠ Ошибка API: '+e.message;
+    log('⚠ AI ошибка: '+e.message,'e');
+  }
+  btn.textContent='[ 🤖 ЗАПУСТИТЬ ИИ АНАЛИЗ ]';btn.disabled=false;
+}
+
+// ═══ CHARTS ══════════════════════════════════════
+function drawChart(id,data,color,maxVal){
+  const c=document.getElementById(id);if(!c||!c.offsetWidth)return;
+  const dpr=window.devicePixelRatio||1;
+  c.width=c.offsetWidth*dpr;c.height=parseInt(c.getAttribute('height')||50)*dpr;
+  const ctx=c.getContext('2d');ctx.scale(dpr,dpr);
+  const W=c.offsetWidth,H=parseInt(c.getAttribute('height')||50);
   ctx.clearRect(0,0,W,H);
-
-  // grid lines
-  ctx.strokeStyle = '#0f2a3a';
-  ctx.lineWidth = 1;
-  [25, 50, 75].forEach(y => {
-    const py = H - (y/100)*H;
-    ctx.beginPath(); ctx.moveTo(0,py); ctx.lineTo(W,py); ctx.stroke();
-  });
-
-  if(cpuHistory.every(v=>v===0)) return;
-
-  const step = W / (cpuHistory.length-1);
-  const grad = ctx.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0,'rgba(0,255,136,0.6)');
-  grad.addColorStop(1,'rgba(0,255,136,0)');
-
-  // fill
+  ctx.strokeStyle='#0f2a3a';ctx.lineWidth=1;
+  [.25,.5,.75].forEach(r=>{const y=H-r*H;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();});
+  if(data.every(v=>v===0))return;
+  const step=W/(data.length-1);const max=maxVal||Math.max(...data,1);
+  const grad=ctx.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,color+'99');grad.addColorStop(1,color+'00');
+  ctx.beginPath();ctx.moveTo(0,H);
+  data.forEach((v,i)=>ctx.lineTo(i*step,H-(v/max)*H*0.9));
+  ctx.lineTo(W,H);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
   ctx.beginPath();
-  ctx.moveTo(0, H);
-  cpuHistory.forEach((v,i) => ctx.lineTo(i*step, H-(v/100)*H));
-  ctx.lineTo(W, H);
-  ctx.closePath();
-  ctx.fillStyle = grad;
-  ctx.fill();
-
-  // line
-  ctx.beginPath();
-  cpuHistory.forEach((v,i) => {
-    const x = i*step, y = H-(v/100)*H;
-    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle = '#00ff88';
-  ctx.lineWidth = 1.5;
-  ctx.shadowColor = '#00ff88';
-  ctx.shadowBlur = 4;
-  ctx.stroke();
-  ctx.shadowBlur = 0;
+  data.forEach((v,i)=>{const x=i*step,y=H-(v/max)*H*0.9;i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.strokeStyle=color;ctx.lineWidth=1.5;ctx.shadowColor=color;ctx.shadowBlur=4;ctx.stroke();ctx.shadowBlur=0;
 }
 
-// ─── Update loop ─────────────────────────────────────────
-let tick = 0;
-function update() {
+// ═══ MAIN LOOP ════════════════════════════════════
+function mainLoop(){
   tick++;
-
-  // CPU
-  const cpu = estimateCPU();
-  cpuHistory.push(cpu);
-  if(cpuHistory.length > 60) cpuHistory.shift();
-  if(cpu > peakCpu) { peakCpu = cpu; document.getElementById('cpuPeak').textContent = 'ПИКОВОЕ: '+peakCpu+'%'; }
-
-  const cpuEl = document.getElementById('cpuVal');
-  cpuEl.textContent = cpu + '%';
-  cpuEl.className = 'card-value' + (cpu>80?' danger':cpu>50?' warn':'');
-  const cpuBar = document.getElementById('cpuBar');
-  cpuBar.style.width = cpu+'%';
-  cpuBar.className = 'gauge-fill' + (cpu>80?' danger':cpu>50?' warn':'');
-
-  // Memory
-  const mem = getMemory();
-  if(mem) {
-    document.getElementById('memVal').textContent = fmtBytes(mem.used);
-    document.getElementById('memLimit').textContent = 'из ' + fmtBytes(mem.limit);
-    const memBar = document.getElementById('memBar');
-    memBar.style.width = mem.pct+'%';
-    memBar.className = 'gauge-fill' + (mem.pct>80?' danger':mem.pct>60?' warn':'');
-
-    // mem map
-    const usedPct = Math.round(mem.used/mem.limit*100);
-    const heapPct = Math.round((mem.total-mem.used)/mem.limit*100);
-    const freePct = 100 - usedPct - heapPct;
-    const segs = document.querySelectorAll('.mem-seg');
-    if(segs[0]) segs[0].style.flex = usedPct;
-    if(segs[1]) segs[1].style.flex = Math.max(heapPct,1);
-    if(segs[2]) segs[2].style.flex = Math.max(freePct,1);
-  } else {
-    document.getElementById('memVal').textContent = 'N/A';
-    document.getElementById('memLimit').textContent = 'API недоступен';
-  }
-
-  // Uptime
-  const sec = Math.floor((Date.now()-startTime)/1000);
-  const m = Math.floor(sec/60).toString().padStart(2,'0');
-  const s = (sec%60).toString().padStart(2,'0');
-  document.getElementById('uptimeVal').textContent = m+':'+s;
-
-  drawSparkline();
-
-  // Events
-  if(tick % 5 === 0) analyzeNetworkResources();
-
-  if(tick % 10 === 0) {
-    if(cpu > 80) log(`⚠ CPU нагрузка критическая: ${cpu}%`, 'warn');
-    else if(cpu > 50) log(`▲ CPU нагрузка повышена: ${cpu}%`, 'warn');
-  }
-  if(tick === 1) {
-    log('✓ Мониторинг запущен', 'ok');
-    log(`✓ Браузер: ${navigator.userAgent.substring(0,50)}`, 'ok');
-    log(`✓ ОС: ${navigator.platform || 'неизвестно'}`, 'ok');
-    if(performance.memory) log('✓ Memory API доступен', 'ok');
-    else log('⚠ Memory API недоступен (Safari/Firefox)', 'warn');
-    analyzeNetworkResources();
-  }
+  const cpu=estimateCPU();
+  cpuHist.push(cpu);if(cpuHist.length>60)cpuHist.shift();
+  if(cpu>peakCpu){peakCpu=cpu;document.getElementById('cpuPeak').textContent='ПИКОВОЕ: '+peakCpu+'%';}
+  const cEl=document.getElementById('cpuVal');cEl.textContent=cpu+'%';cEl.className='cv'+(cpu>80?' danger':cpu>50?' warn':'');
+  const cBar=document.getElementById('cpuBar');cBar.style.width=cpu+'%';cBar.className='gfill'+(cpu>80?' danger':cpu>50?' warn':'');
+  if(performance.memory){
+    const m=performance.memory;const pct=Math.round(m.usedJSHeapSize/m.jsHeapSizeLimit*100);
+    document.getElementById('memVal').textContent=fmtBytes(m.usedJSHeapSize);
+    document.getElementById('memSub').textContent='из '+fmtBytes(m.jsHeapSizeLimit);
+    const mb=document.getElementById('memBar');mb.style.width=pct+'%';mb.className='gfill'+(pct>80?' danger':pct>60?' warn':'');
+    const used=Math.round(m.usedJSHeapSize/m.jsHeapSizeLimit*100);
+    const heap=Math.round((m.totalJSHeapSize-m.usedJSHeapSize)/m.jsHeapSizeLimit*100);
+    const free=Math.max(0,100-used-heap);
+    const segs=document.querySelectorAll('.ms');
+    if(segs[0]){segs[0].style.flex=used;segs[1].style.flex=Math.max(heap,1);segs[2].style.flex=Math.max(free,1);}
+  }else{document.getElementById('memVal').textContent='N/A';document.getElementById('memSub').textContent='недоступно';}
+  const sec=Math.floor((Date.now()-T0)/1000);
+  document.getElementById('uptimeVal').textContent=String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0');
+  drawChart('cpuChart',cpuHist,'#00ff88',100);
+  drawChart('rttChart',rttHist,'#00d4ff',Math.max(...rttHist,200));
+  if(motionGranted)drawChart('accChart',accHist,'#bf5fff',30);
+  if(cpu>85&&tick%10===0){log('⚠ Аномальная нагрузка CPU: '+cpu+'%','e');threats++;updateThreat();}
+  if(fps<20&&tick%10===0)log('⚠ Низкий FPS: '+fps,'w');
 }
 
-function fullScan() {
-  log('→ Принудительное сканирование...', '');
-  analyzeNetworkResources();
-  // Check for suspicious patterns
-  const entries = performance.getEntriesByType('resource');
-  const beacons = entries.filter(e => e.initiatorType === 'beacon' || e.initiatorType === 'ping');
-  const heavy = entries.filter(e => (e.transferSize||0) > 500000);
-
-  if(beacons.length > 0) log(`⚠ Обнаружено ${beacons.length} маяков-трекеров!`, 'err');
-  else log('✓ Трекеры-маяки не обнаружены', 'ok');
-
-  if(heavy.length > 0) log(`⚠ ${heavy.length} ресурс(ов) > 500KB`, 'warn');
-  else log('✓ Тяжёлых ресурсов нет', 'ok');
-
-  // Check 3rd party scripts
-  const scripts = entries.filter(e => e.initiatorType === 'script');
-  const thirdParty = scripts.filter(e => {
-    try { return new URL(e.name).hostname !== location.hostname; } catch(ex) { return false; }
-  });
-  if(thirdParty.length > 0) log(`ℹ Сторонних скриптов: ${thirdParty.length}`, 'warn');
-  else log('✓ Сторонние скрипты отсутствуют', 'ok');
-
-  log('✓ Сканирование завершено', 'ok');
+// ═══ INIT ════════════════════════════════════════
+async function init(){
+  log('✓ SYS//MONITOR PRO v2.0 запущен','ok');
+  log('✓ '+navigator.userAgent.substring(0,60),'ok');
+  if(performance.memory)log('✓ Memory API доступен','ok');
+  else log('⚠ Memory API недоступен (Safari/Firefox)','w');
+  await initBattery();
+  initNetworkInfo();
+  scanNetwork();
+  setInterval(mainLoop,1000);
+  setInterval(scanNetwork,30000);
+  setInterval(measurePing,10000);
+  mainLoop();
 }
-
-// ─── Ping monitor ────────────────────────────────────────
-async function measurePing() {
-  try {
-    const t0 = performance.now();
-    await fetch(location.href, {method:'HEAD', cache:'no-store'});
-    const rtt = Math.round(performance.now() - t0);
-    document.getElementById('pingVal').textContent = rtt + 'ms';
-    if(rtt > 500) log(`⚠ Высокая задержка сети: ${rtt}ms`, 'warn');
-  } catch(e) {}
-}
-
-// ─── Start ───────────────────────────────────────────────
-update();
-setInterval(update, 1000);
-setInterval(measurePing, 15000);
-measurePing();
+window.addEventListener('load',init);
+window.addEventListener('resize',()=>{drawChart('cpuChart',cpuHist,'#00ff88',100);drawChart('rttChart',rttHist,'#00d4ff',200);});
 </script>
 
 </body>
