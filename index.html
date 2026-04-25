@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Volumetric Scanner</title>
+    <title>Neural Body Scanner</title>
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ui-green: #00ffcc; /* Бирюзово-зеленый как на картинке */
+            --ui-green: #00ffcc;
             --ui-yellow: #f8e71c;
             --bg-overlay: rgba(0, 0, 0, 0.5);
         }
@@ -17,61 +17,26 @@
             overflow: hidden; background-color: #000;
             font-family: 'Chakra Petch', sans-serif;
             color: var(--ui-green);
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
         }
 
         #app-container {
             position: relative; width: 100vw; height: 100vh;
         }
 
-        /* 1. Элементы для работы CV (скрыты) */
-        video#input-video {
-            display: none;
-        }
+        video#input-video { display: none; }
 
-        /* 2. Основной слой 3D рендеринга (Сетки объектов) */
         canvas#gl-canvas {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%; object-fit: cover;
             z-index: 1;
         }
 
-        /* 3. Слой 2D UI (HUD, текст, рамки) */
         canvas#ui-canvas {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 2; pointer-events: none; /* Пропускает клики вниз */
+            z-index: 2; pointer-events: none;
         }
 
-        /* 4. Кнопки управления (Верхний слой) */
-        #controls-layer {
-            position: absolute; bottom: 0; left: 0; width: 100%;
-            height: 120px; z-index: 10;
-            display: flex; justify-content: center; align-items: center;
-            gap: 20px; padding-bottom: 20px;
-            box-sizing: border-box;
-        }
-
-        .ctrl-btn {
-            background: rgba(0, 255, 204, 0.1);
-            border: 2px solid var(--ui-green);
-            color: var(--ui-green);
-            border-radius: 50%;
-            width: 60px; height: 60px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; transition: all 0.2s;
-            box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
-        }
-
-        .ctrl-btn:active { background: rgba(0, 255, 204, 0.3); transform: scale(0.95); }
-        .ctrl-btn svg { width: 24px; height: 24px; fill: var(--ui-green); margin-bottom: 2px; }
-        .ctrl-btn span { font-size: 8px; text-transform: uppercase; font-weight: bold; }
-
-        #btn-scan { width: 75px; height: 75px; border-width: 3px; }
-        #btn-scan span { font-size: 10px; }
-
-        /* Лоадер при запуске */
         #loading-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000; z-index: 100;
@@ -79,9 +44,9 @@
             transition: opacity 0.5s;
         }
         .spinner {
-            width: 50px; height: 50px; border: 5px solid rgba(0,255,204,0.2);
+            width: 40px; height: 40px; border: 4px solid rgba(0,255,204,0.1);
             border-top-color: var(--ui-green); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 20px;
+            animation: spin 1s linear infinite; margin-bottom: 15px;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
     </style>
@@ -90,34 +55,16 @@
 
 <div id="app-container">
     <video id="input-video" playsinline muted></video>
-    
     <canvas id="gl-canvas"></canvas>
-    
     <canvas id="ui-canvas"></canvas>
     
-    <div id="controls-layer">
-        <button class="ctrl-btn" id="btn-settings">
-            <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 0.44-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
-            <span>Settings</span>
-        </button>
-        <button class="ctrl-btn" id="btn-scan">
-            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4-8c0 2.21-1.79 4-4 4s-4-1.79-4-4 1.79-4 4-4 4 1.79 4 4z"/></svg>
-            <span>Scan</span>
-        </button>
-        <button class="ctrl-btn" id="btn-reset">
-            <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-            <span>Reset</span>
-        </button>
-    </div>
-
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <div>LOADING AI MODELS...</div>
+        <div style="letter-spacing: 2px; font-size: 10px;">INITIALIZING FULL_BODY_SCANNER...</div>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
@@ -131,14 +78,6 @@
 
     let fps = 0;
     let lastCalledTime;
-    let modelsLoaded = 0;
-
-    // Настройки интерфейса
-    const UI_COLOR = '#00ffcc';
-    const UI_COLOR_DARK = 'rgba(0, 255, 204, 0.2)';
-    const UI_YELLOW = '#f8e71c';
-
-    // Размеры (будут обновлены)
     let width = window.innerWidth;
     let height = window.innerHeight;
 
@@ -151,173 +90,132 @@
     window.addEventListener('resize', onResize);
     onResize();
 
-    // --- 1. Инициализация MediaPipe Hands ---
-    const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
-    hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-    hands.onResults(onHandsResults);
+    // --- 1. Инициализация Pose (Тело, Руки, Ноги) ---
+    const pose = new Pose({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+    });
 
-    // --- 2. Инициализация MediaPipe FaceMesh ---
-    const faceMesh = new FaceMesh({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`});
-    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-    faceMesh.onResults(onFaceResults);
+    pose.setOptions({
+        modelComplexity: 1, // 0 - быстро, 1 - баланс, 2 - точно
+        smoothLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
+    });
 
-    // Функция отслеживания загрузки моделей
-    function checkLoader() {
-        modelsLoaded++;
-        if(modelsLoaded >= 2) {
+    pose.onResults(onPoseResults);
+
+    // --- 2. Рендеринг скелета ---
+    function onPoseResults(results) {
+        if (loader.style.display !== 'none') {
             loader.style.opacity = '0';
             setTimeout(() => loader.style.display = 'none', 500);
         }
-    }
 
-    // --- 3. Основной цикл рендеринга 3D Геометрии ---
-    function onHandsResults(results) {
-        if(modelsLoaded < 1) checkLoader();
-        // Мы не рисуем видео-фон на этом canvas, оставляем черный фон.
         glCtx.save();
         glCtx.clearRect(0, 0, width, height); 
         
-        if (results.multiHandLandmarks) {
-            for (const landmarks of results.multiHandLandmarks) {
-                // Рисуем ТОЛЬКО сетку скелета (связи)
-                drawConnectors(glCtx, landmarks, HAND_CONNECTIONS, {color: UI_COLOR, lineWidth: 1.5});
-                // Рисуем точки (шейпы) объема
-                for(let i=0; i<landmarks.length; i++) {
-                    const point = landmarks[i];
+        if (results.poseLandmarks) {
+            // Рисуем связи (ноги, руки, торс)
+            // Исключаем голову (индексы 0-10 в Pose отвечают за лицо)
+            // Мы будем использовать стандартные коннекторы, но фильтровать их
+            
+            const landmarks = results.poseLandmarks;
+            
+            // Отрисовка соединений
+            drawConnectors(glCtx, landmarks, POSE_CONNECTIONS, {
+                color: '#00ffcc',
+                lineWidth: 2
+            });
+
+            // Отрисовка ключевых узлов (точек)
+            landmarks.forEach((landmark, index) => {
+                // Пропускаем точки лица (0-10)
+                if (index <= 10) return;
+
+                const x = landmark.x * width;
+                const y = landmark.y * height;
+                const visibility = landmark.visibility;
+
+                if (visibility > 0.5) {
                     glCtx.beginPath();
-                    glCtx.arc(point.x * width, point.y * height, 2, 0, 2 * Math.PI);
-                    glCtx.fillStyle = (i % 4 === 0) ? UI_COLOR : UI_YELLOW; // Разные цвета для объема
+                    glCtx.arc(x, y, 3, 0, 2 * Math.PI);
+                    glCtx.fillStyle = (index > 10 && index < 23) ? '#00ffcc' : '#f8e71c';
                     glCtx.fill();
+                    
+                    // Эффект "объема" - дополнительные круги
+                    glCtx.beginPath();
+                    glCtx.arc(x, y, 6, 0, 2 * Math.PI);
+                    glCtx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
+                    glCtx.stroke();
                 }
-            }
+            });
         }
         glCtx.restore();
     }
 
-    function onFaceResults(results) {
-        if(modelsLoaded < 2) checkLoader();
-        // Рисуем поверх рук на том же canvas
-        glCtx.save();
-        if (results.multiFaceLandmarks) {
-            for (const landmarks of results.multiFaceLandmarks) {
-                // Рисуем сложную сетку лица (Tesselation)
-                drawConnectors(glCtx, landmarks, FACEMESH_TESSELATION, {color: 'rgba(0, 255, 204, 0.3)', lineWidth: 0.5});
-                // Рисуем контуры глаз/губ
-                drawConnectors(glCtx, landmarks, FACEMESH_RIGHT_EYE, {color: UI_COLOR, lineWidth: 1});
-                drawConnectors(glCtx, landmarks, FACEMESH_LEFT_EYE, {color: UI_COLOR, lineWidth: 1});
-                drawConnectors(glCtx, landmarks, FACEMESH_LIPS, {color: UI_COLOR, lineWidth: 1});
-            }
-        }
-        glCtx.restore();
-    }
-
-    // --- 4. Loop для UI HUD (Отрисовка текста и рамок) ---
+    // --- 3. Отрисовка полноэкранного HUD ---
     function drawUI() {
         requestAnimationFrame(drawUI);
         uiCtx.clearRect(0, 0, width, height);
         
-        // Расчет FPS
         if(!lastCalledTime) { lastCalledTime = Date.now(); return; }
         let delta = (Date.now() - lastCalledTime)/1000;
         lastCalledTime = Date.now();
         fps = Math.round(1/delta);
 
         uiCtx.save();
-        uiCtx.font = '12px "Chakra Petch"';
-        uiCtx.fillStyle = UI_COLOR;
+        
+        // Полноэкранная рамка (Corner Brackets)
+        const margin = 20;
+        const cl = 40; // Длина угла
+        uiCtx.strokeStyle = '#00ffcc';
+        uiCtx.lineWidth = 2;
+
+        // Top-Left
+        uiCtx.beginPath(); uiCtx.moveTo(margin, margin + cl); uiCtx.lineTo(margin, margin); uiCtx.lineTo(margin + cl, margin); uiCtx.stroke();
+        // Top-Right
+        uiCtx.beginPath(); uiCtx.moveTo(width - margin - cl, margin); uiCtx.lineTo(width - margin, margin); uiCtx.lineTo(width - margin, margin + cl); uiCtx.stroke();
+        // Bottom-Left
+        uiCtx.beginPath(); uiCtx.moveTo(margin, height - margin - cl); uiCtx.lineTo(margin, height - margin); uiCtx.lineTo(margin + cl, height - margin); uiCtx.stroke();
+        // Bottom-Right
+        uiCtx.beginPath(); uiCtx.moveTo(width - margin - cl, height - margin); uiCtx.lineTo(width - margin, height - margin); uiCtx.lineTo(width - margin, height - margin - cl); uiCtx.stroke();
+
+        // Текстовая информация
+        uiCtx.font = '10px "Chakra Petch"';
+        uiCtx.fillStyle = '#00ffcc';
+        
+        uiCtx.fillText(`DATA_STREAM: CONNECTED`, margin + 10, margin + 60);
+        uiCtx.fillText(`SCAN_TYPE: FULL_BODY_SEGMENTATION`, margin + 10, margin + 75);
+        uiCtx.fillStyle = (fps > 24) ? '#00ffcc' : '#ff4444';
+        uiCtx.fillText(`ENGINE_FPS: ${fps}`, margin + 10, margin + 90);
+
+        // Индикатор захвата объекта (внизу)
+        uiCtx.textAlign = 'center';
+        uiCtx.fillStyle = '#00ffcc';
+        uiCtx.fillText(`TARGET ACQUISITION: IN_PROGRESS`, width / 2, height - 40);
+        
+        // "Сетка" на фоне (слабая)
+        uiCtx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
         uiCtx.lineWidth = 1;
-
-        // --- Верхний левый блок (Система) ---
-        const topLeftX = 30; const topLeftY = 40;
-        uiCtx.fillText(`SYSTEM: ACTIVE`, topLeftX, topLeftY);
-        uiCtx.fillText(`MODE: VOLUMETRIC ANALYSIS`, topLeftX, topLeftY + 18);
-        uiCtx.fillStyle = (fps > 20) ? UI_COLOR : '#ff4444';
-        uiCtx.fillText(`FPS: ${fps}`, topLeftX, topLeftY + 36);
-        uiCtx.fillStyle = UI_COLOR;
-
-        // --- Верхний правый блок (ARR / Батарея) ---
-        uiCtx.textAlign = 'right';
-        uiCtx.fillText(`ARR`, width - 70, topLeftY);
-        // Значок батареи
-        uiCtx.strokeStyle = UI_COLOR;
-        uiCtx.strokeRect(width - 60, topLeftY - 10, 30, 12);
-        uiCtx.fillStyle = UI_COLOR;
-        uiCtx.fillRect(width - 58, topLeftY - 8, 20, 8); // Уровень заряда
-        uiCtx.fillRect(width - 30, topLeftY - 6, 3, 4); // Носик
-
-        // --- Центральная рамка сканирования ---
-        const frameW = width * 0.7; const frameH = height * 0.5;
-        const frameX = (width - frameW)/2; const frameY = (height - frameH)/2;
-        
-        uiCtx.strokeStyle = UI_COLOR_DARK;
-        uiCtx.strokeRect(frameX, frameY, frameW, frameH);
-        
-        // Уголки рамки
-        const cl = 20; // длина уголка
-        uiCtx.strokeStyle = UI_COLOR; uiCtx.lineWidth = 2;
-        // top left
-        uiCtx.beginPath(); uiCtx.moveTo(frameX, frameY + cl); uiCtx.lineTo(frameX, frameY); uiCtx.lineTo(frameX + cl, frameY); uiCtx.stroke();
-        // top right
-        uiCtx.beginPath(); uiCtx.moveTo(frameX + frameW - cl, frameY); uiCtx.lineTo(frameX + frameW, frameY); uiCtx.lineTo(frameX + frameW, frameY + cl); uiCtx.stroke();
-        // bottom left
-        uiCtx.beginPath(); uiCtx.moveTo(frameX, frameY + frameH - cl); uiCtx.lineTo(frameX, frameY + frameH); uiCtx.lineTo(frameX + cl, frameY + frameH); uiCtx.stroke();
-        // bottom right
-        uiCtx.beginPath(); uiCtx.moveTo(frameX + frameW - cl, frameY + frameH); uiCtx.lineTo(frameX + frameW, frameY + frameH); uiCtx.lineTo(frameX + frameW, frameY + frameH - cl); uiCtx.stroke();
-
-        // Тег объекта (PLANE: WALL)
-        uiCtx.fillStyle = varColor('--bg-overlay');
-        uiCtx.fillRect(frameX + frameW - 100, frameY + 20, 90, 40);
-        uiCtx.textAlign = 'left'; uiCtx.fillStyle = UI_COLOR;
-        uiCtx.fillText(`PLANE:`, frameX + frameW - 95, frameY + 35);
-        uiCtx.font = '700 14px "Chakra Petch"';
-        uiCtx.fillText(`HAND / FACE`, frameX + frameW - 95, frameY + 53);
-
-        // --- Нижний блок (Высота / Миникарта) ---
-        uiCtx.font = '12px "Chakra Petch"';
-        // Label HEIGHT
-        const botY = height - 150;
-        uiCtx.fillText(`OBJECT: HUMANOID_PART`, frameX + 20, botY);
-        uiCtx.fillStyle = UI_YELLOW;
-        uiCtx.fillText(`STATUS: TRACKING`, frameX + 20, botY + 18);
-
-        // Мини-карта (справа снизу)
-        const mapSize = 100;
-        const mapX = width - mapSize - 30; const mapY = height - mapSize - 130;
-        uiCtx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        uiCtx.fillRect(mapX, mapY, mapSize, mapSize);
-        uiCtx.strokeStyle = UI_COLOR_DARK; uiCtx.lineWidth = 1;
-        uiCtx.strokeRect(mapX, mapY, mapSize, mapSize);
-        // Сетка карты
         uiCtx.beginPath();
-        for(let i=1; i<4; i++) {
-            uiCtx.moveTo(mapX + (mapSize/4)*i, mapY); uiCtx.lineTo(mapX + (mapSize/4)*i, mapY + mapSize);
-            uiCtx.moveTo(mapX, mapY + (mapSize/4)*i); uiCtx.lineTo(mapX + mapSize, mapY + (mapSize/4)*i);
-        }
+        for(let i = 0; i < width; i += 50) { uiCtx.moveTo(i, 0); uiCtx.lineTo(i, height); }
+        for(let i = 0; i < height; i += 50) { uiCtx.moveTo(0, i); uiCtx.lineTo(width, i); }
         uiCtx.stroke();
-        // Точка игрока
-        uiCtx.fillStyle = UI_YELLOW; uiCtx.beginPath(); uiCtx.arc(mapX + mapSize/2, mapY + mapSize/2, 3, 0, 2*Math.PI); uiCtx.fill();
 
         uiCtx.restore();
     }
 
-    function varColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name); }
-
-    // --- 5. Запуск Камеры ---
+    // --- 4. Запуск камеры ---
     const camera = new Camera(videoElement, {
         onFrame: async () => {
-            // Запускаем параллельно две модели
-            await hands.send({image: videoElement});
-            await faceMesh.send({image: videoElement});
+            await pose.send({image: videoElement});
         },
-        // Оптимизация разрешения для мобильных
-        width: width > height ? 640 : 480, 
-        height: width > height ? 480 : 640
+        width: 640,
+        height: 480
     });
 
-    // Начинаем все процессы
     camera.start();
     drawUI();
-
 </script>
 </body>
 </html>
