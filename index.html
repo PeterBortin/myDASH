@@ -3,416 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#020408">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>SYS//MONITOR PRO</title>
+    <title>Neural Edge Detector HUD</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
-        :root {
-            --bg: #020408; --panel: #050d14; --border: #0f2a3a;
-            --green: #00ff88; --cyan: #00d4ff; --red: #ff3366;
-            --orange: #ff8c00; --yellow: #ffe033; --purple: #bf5fff;
-            --dim: #1a3a4a; --text: #7fbfcf;
-            --gg: 0 0 10px #00ff8877; --gc: 0 0 10px #00d4ff77;
-            --gr: 0 0 10px #ff336677; --gp: 0 0 10px #bf5fff77;
-        }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { 
-            background: var(--bg); color: var(--text); 
-            font-family: 'Share Tech Mono', monospace; font-size: 12px; 
-            min-height: 100vh; overflow-x: hidden; padding-bottom: 80px; 
-        }
-        body::before {
-            content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,.012) 2px, rgba(0,255,136,.012) 4px);
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
         }
 
-        header { 
-            position: sticky; top: 0; z-index: 100; padding: 12px 16px; 
-            background: rgba(6, 15, 24, 0.93); border-bottom: 1px solid var(--border); 
-            backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; 
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
         }
-        .logo { font-family: 'Orbitron', sans-serif; font-size: 14px; font-weight: 900; color: var(--cyan); letter-spacing: 3px; text-shadow: var(--gc); }
-        .logo em { color: var(--green); font-style: normal; }
-        
-        .hright { display: flex; align-items: center; gap: 10px; }
-        .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: var(--gg); animation: blink 1.4s ease-in-out infinite; }
-        @keyframes blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .3; transform: scale(.6); } }
-        
-        .threat-badge { font-family: 'Orbitron', sans-serif; font-size: 9px; padding: 3px 8px; border-radius: 12px; background: rgba(0, 255, 136, 0.12); color: var(--green); border: 1px solid rgba(0, 255, 136, 0.25); }
-        .threat-badge.warn { background: rgba(255, 140, 0, 0.12); color: var(--orange); border-color: rgba(255, 140, 0, 0.3); }
-        .threat-badge.danger { background: rgba(255, 51, 102, 0.12); color: var(--red); border-color: rgba(255, 51, 102, 0.3); animation: tpulse 1s infinite; }
-        @keyframes tpulse { 50% { box-shadow: 0 0 12px var(--red); } }
 
-        .tabs { display: flex; border-bottom: 1px solid var(--border); background: #030910; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        .tab { flex: 1; min-width: 70px; padding: 12px 6px; text-align: center; font-size: 9px; color: #3a7a9a; cursor: pointer; border-bottom: 2px solid transparent; }
-        .tab.active { color: var(--cyan); border-bottom-color: var(--cyan); text-shadow: var(--gc); background: rgba(0, 212, 255, 0.05); }
-
-        .page { display: none; padding: 12px 14px; }
-        .page.active { display: block; }
-
-        .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-        .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-bottom: 8px; }
-        .card { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px; position: relative; }
-        .cl { font-size: 8px; letter-spacing: 1.5px; color: #2a6a8a; margin-bottom: 4px; text-transform: uppercase; }
-        .cv { font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 700; color: var(--green); line-height: 1.2; }
-        .cv.sm { font-size: 13px; }
-        .cv.danger { color: var(--red); }
-        .cv.warn { color: var(--orange); }
-        
-        .gauge { height: 4px; background: var(--dim); border-radius: 2px; margin-top: 8px; overflow: hidden; }
-        .gfill { height: 100%; width: 0%; transition: width 0.5s ease; background: var(--green); }
-
-        .sec { font-family: 'Orbitron', sans-serif; font-size: 9px; color: var(--cyan); margin: 15px 0 8px; display: flex; align-items: center; gap: 10px; }
-        .sec::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
-
-        canvas { width: 100% !important; height: 50px !important; display: block; margin-top: 5px; }
-
-        .ci { background: var(--panel); border: 1px solid var(--border); border-left: 3px solid var(--cyan); border-radius: 4px; padding: 8px 10px; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
-        .ci.danger { border-left-color: var(--red); }
-        .ch { color: #a0d4e0; font-size: 10px; }
-        .cs { color: #2a6a8a; font-size: 8px; }
-        .badge { font-size: 8px; padding: 2px 6px; border-radius: 4px; border: 1px solid currentColor; }
-
-        .log-box { background: #010408; border: 1px solid var(--border); border-radius: 6px; padding: 8px; height: 250px; overflow-y: auto; font-size: 10px; display: flex; flex-direction: column-reverse; }
-        .le { margin-bottom: 4px; font-family: 'Share Tech Mono', monospace; border-bottom: 1px solid #050d14; padding-bottom: 2px; }
-        .lt { color: #3a7a9a; margin-right: 8px; }
-        .lm.e { color: var(--red); }
-        .lm.ok { color: var(--green); }
-
-        .btn { 
-            width: 100%; padding: 14px; background: #0a1e30; border: 1px solid var(--cyan); 
-            color: var(--cyan); font-family: 'Orbitron', sans-serif; font-size: 10px; 
-            border-radius: 4px; cursor: pointer; margin: 10px 0; 
+        video, canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        .btn:active { background: var(--cyan); color: var(--bg); }
 
-        .perm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .perm-btn { background: var(--panel); border: 1px solid var(--border); padding: 12px; border-radius: 6px; text-align: center; color: #3a7a9a; }
-        .perm-btn.granted { border-color: var(--green); color: var(--green); }
+        #ui-layer {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0f0;
+            text-shadow: 0 0 5px #0f0;
+            pointer-events: none;
+            z-index: 10;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        .status-blink {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 10px 20px;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            text-transform: uppercase;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-<header>
-    <div class="logo">SYS<em>//</em>MONITOR <span style="font-size:9px;color:#3a7a9a">PRO</span></div>
-    <div class="hright">
-        <span class="threat-badge" id="threatBadge">БЕЗОПАСНО</span>
-        <div class="dot"></div>
-    </div>
-</header>
-
-<div class="tabs">
-    <div class="tab active" onclick="showTab('overview',this)">ОБЗОР</div>
-    <div class="tab" onclick="showTab('network',this)">СЕТЬ</div>
-    <div class="tab" onclick="showTab('sensors',this)">СЕНСОРЫ</div>
-    <div class="tab" onclick="showTab('ai',this)">ИИ</div>
-    <div class="tab" onclick="showTab('log',this)">ЛОГ</div>
-</div>
-
-<div class="page active" id="page-overview">
-    <div class="sec">ПРОИЗВОДИТЕЛЬНОСТЬ</div>
-    <div class="g2">
-        <div class="card">
-            <div class="cl">CPU JS-THREAD</div>
-            <div class="cv" id="cpuVal">0%</div>
-            <div class="gauge"><div class="gfill" id="cpuBar"></div></div>
-        </div>
-        <div class="card">
-            <div class="cl">MEMORY HEAP</div>
-            <div class="cv sm" id="memVal">N/A</div>
-            <div class="gauge"><div class="gfill" id="memBar"></div></div>
-        </div>
-    </div>
-    <div class="g3">
-        <div class="card"><div class="cl">FPS</div><div class="cv" id="fpsVal">60</div></div>
-        <div class="card"><div class="cl">PING</div><div class="cv sm" id="pingVal">--</div></div>
-        <div class="card"><div class="cl">UPTIME</div><div class="cv sm" id="uptimeVal">00:00</div></div>
-    </div>
-    <div class="card">
-        <div class="cl">CPU HISTORY (60S)</div>
-        <canvas id="cpuChart"></canvas>
+<div id="container">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="output-canvas"></canvas>
+    
+    <div id="ui-layer">
+        <div>System: Active</div>
+        <div class="status-blink">Scanning Environment...</div>
+        <div id="fps-counter">FPS: 0</div>
     </div>
 
-    <div class="sec">ПИТАНИЕ</div>
-    <div class="card">
-        <div class="g2">
-            <div>
-                <div class="cl">ЗАРЯД</div>
-                <div class="cv" id="batLevel">--%</div>
-            </div>
-            <div>
-                <div class="cl">СТАТУС</div>
-                <div class="cv sm" id="batStatus">IDLE</div>
-            </div>
-        </div>
+    <div id="controls">
+        <button onclick="toggleInversion()">Invert Style</button>
+        <button onclick="changeSensitivity()">Sensitivity</button>
     </div>
 </div>
 
-<div class="page" id="page-network">
-    <div class="sec">ТРАФИК</div>
-    <div class="ci">
-        <div><div class="ch">Local IP (WebRTC)</div><div class="cs" id="localIp">Hidden / Not scanned</div></div>
-        <button onclick="reqWebRTC()" style="background:none; border:1px solid var(--cyan); color:var(--cyan); font-size:8px; padding:4px;">SCAN</button>
-    </div>
-    <div class="card">
-        <div class="cl">RTT LATENCY HISTORY</div>
-        <canvas id="rttChart"></canvas>
-    </div>
-    <div class="sec">АКТИВНЫЕ ХОСТЫ</div>
-    <div id="connList"></div>
-    <button class="btn" onclick="scanNetwork()">ОБНОВИТЬ СПИСОК РЕСУРСОВ</button>
-</div>
+<script id="vertexShader" type="x-shader/x-vertex">
+    varying vec2 vUv;
+    void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+</script>
 
-<div class="page" id="page-sensors">
-    <div class="sec">РАЗРЕШЕНИЯ</div>
-    <div class="perm-grid">
-        <div class="perm-btn" id="perm-motion" onclick="reqMotion()">MOTION</div>
-        <div class="perm-btn" id="perm-geo" onclick="reqGeo()">LOCATION</div>
-    </div>
-    <div class="sec">ДАННЫЕ ОСЕЙ</div>
-    <div class="card">
-        <div class="g3" style="text-align:center">
-            <div><div class="cl">X</div><div class="cv sm" id="accX">0.0</div></div>
-            <div><div class="cl">Y</div><div class="cv sm" id="accY">0.0</div></div>
-            <div><div class="cl">Z</div><div class="cv sm" id="accZ">0.0</div></div>
-        </div>
-    </div>
-</div>
+<script id="fragmentShader" type="x-shader/x-fragment">
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution;
+    uniform float sensitivity;
+    uniform bool invert;
 
-<div class="page" id="page-ai">
-    <div class="card">
-        <div class="cl">АНАЛИЗ БЕЗОПАСНОСТИ</div>
-        <div id="aiResponse" style="min-height:100px; font-size:11px; color:#9abfcf; padding:10px 0;">Ожидание данных для анализа...</div>
-        <button class="btn" style="border-color:var(--purple); color:var(--purple)" onclick="runAIAnalysis()">ЗАПУСТИТЬ ИИ-АУДИТ</button>
-    </div>
-</div>
+    void main() {
+        vec2 texel = 1.0 / resolution;
+        
+        // Матрица Собеля для детектирования границ
+        vec4 center = texture2D(tDiffuse, vUv);
+        float grayC = (center.r + center.g + center.b) / 3.0;
 
-<div class="page" id="page-log">
-    <div class="log-box" id="logBox"></div>
-</div>
+        float top = (texture2D(tDiffuse, vUv + vec2(0.0, texel.y)).rgb).g;
+        float bottom = (texture2D(tDiffuse, vUv - vec2(0.0, texel.y)).rgb).g;
+        float left = (texture2D(tDiffuse, vUv - vec2(texel.x, 0.0)).rgb).g;
+        float right = (texture2D(tDiffuse, vUv + vec2(texel.x, 0.0)).rgb).g;
+
+        float edge = abs(left - right) + abs(top - bottom);
+        edge = smoothstep(0.1, sensitivity, edge);
+
+        vec3 edgeColor = vec3(0.0, 1.0, 0.5); // Киберпанк бирюзовый/зеленый
+        
+        if (invert) {
+            gl_FragColor = vec4(edgeColor * edge, 1.0);
+        } else {
+            // Смешивание оригинала с гранями
+            gl_FragColor = vec4(center.rgb * 0.3 + edgeColor * edge, 1.0);
+        }
+    }
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-    const STATE = {
-        cpuHist: Array(60).fill(0),
-        rttHist: Array(60).fill(0),
-        threats: new Set(),
-        startTime: Date.now(),
-        fps: 60,
-        frameCount: 0,
-        lastFrameTime: performance.now()
-    };
+    let scene, camera, renderer, videoTexture, material;
+    let sensitivityValue = 0.4;
+    let isInverted = true;
+    const video = document.getElementById('video');
+    const fpsCounter = document.getElementById('fps-counter');
+    let lastTime = 0;
 
-    // --- UI NAVIGATION ---
-    function showTab(id, el) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.getElementById('page-' + id).classList.add('active');
-        el.classList.add('active');
-        window.dispatchEvent(new Event('resize')); 
-    }
-
-    // --- LOGGING ---
-    function log(msg, type = '') {
-        const box = document.getElementById('logBox');
-        const now = new Date().toLocaleTimeString();
-        const entry = document.createElement('div');
-        entry.className = 'le';
-        entry.innerHTML = `<span class="lt">[${now}]</span><span class="lm ${type}">${msg}</span>`;
-        box.appendChild(entry);
-        if (box.children.length > 50) box.removeChild(box.firstChild);
-    }
-
-    // --- CORE METRICS ---
-    function updatePerformance() {
-        // CPU Estimation
-        const t0 = performance.now();
-        for(let i=0; i<500000; i++) Math.sqrt(i);
-        const delta = performance.now() - t0;
-        const load = Math.min(100, Math.round((delta / 16) * 100));
-        
-        STATE.cpuHist.push(load);
-        STATE.cpuHist.shift();
-
-        document.getElementById('cpuVal').textContent = load + '%';
-        document.getElementById('cpuBar').style.width = load + '%';
-        
-        // Memory
-        if (window.performance && performance.memory) {
-            const mem = performance.memory;
-            const used = Math.round(mem.usedJSHeapSize / 1048576);
-            const total = Math.round(mem.jsHeapSizeLimit / 1048576);
-            document.getElementById('memVal').textContent = used + 'MB';
-            document.getElementById('memBar').style.width = (used/total*100) + '%';
-        }
-
-        // Uptime
-        const diff = Math.floor((Date.now() - STATE.startTime) / 1000);
-        const m = Math.floor(diff/60).toString().padStart(2,'0');
-        const s = (diff%60).toString().padStart(2,'0');
-        document.getElementById('uptimeVal').textContent = `${m}:${s}`;
-
-        // Charts
-        drawChart('cpuChart', STATE.cpuHist, '#00ff88', 100);
-        drawChart('rttChart', STATE.rttHist, '#00d4ff', 200);
-
-        // Threat Logic
-        if(load > 90) addThreat('HIGH_CPU_LOAD');
-    }
-
-    function addThreat(id) {
-        if(!STATE.threats.has(id)) {
-            STATE.threats.add(id);
-            log(`⚠ ОБНАРУЖЕНА АНОМАЛИЯ: ${id}`, 'e');
-            const b = document.getElementById('threatBadge');
-            b.textContent = 'ВНИМАНИЕ';
-            b.className = 'threat-badge danger';
-        }
-    }
-
-    // --- CHARTS ENGINE ---
-    function drawChart(id, data, color, max) {
-        const canvas = document.getElementById(id);
-        if (!canvas || !canvas.clientWidth) return;
-        
-        const ctx = canvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        canvas.width = canvas.clientWidth * dpr;
-        canvas.height = canvas.clientHeight * dpr;
-        ctx.scale(dpr, dpr);
-
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        
-        ctx.clearRect(0,0,w,h);
-        
-        // Grid
-        ctx.strokeStyle = '#0f2a3a';
-        ctx.lineWidth = 0.5;
-        for(let i=1; i<4; i++) {
-            ctx.beginPath();
-            ctx.moveTo(0, h * (i/4));
-            ctx.lineTo(w, h * (i/4));
-            ctx.stroke();
-        }
-
-        // Path
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        const step = w / (data.length - 1);
-        
-        data.forEach((v, i) => {
-            const x = i * step;
-            const y = h - (v / max * h);
-            if(i === 0) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-        });
-        ctx.stroke();
-    }
-
-    // --- SENSORS ---
-    async function reqMotion() {
-        if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-            const res = await DeviceMotionEvent.requestPermission();
-            if(res === 'granted') startMotion();
-        } else {
-            startMotion();
-        }
-    }
-
-    function startMotion() {
-        window.addEventListener('devicemotion', e => {
-            const a = e.accelerationIncludingGravity;
-            if(!a) return;
-            document.getElementById('accX').textContent = a.x?.toFixed(1) || 0;
-            document.getElementById('accY').textContent = a.y?.toFixed(1) || 0;
-            document.getElementById('accZ').textContent = a.z?.toFixed(1) || 0;
-            document.getElementById('perm-motion').classList.add('granted');
-        });
-    }
-
-    function reqGeo() {
-        navigator.geolocation.getCurrentPosition(p => {
-            log('✓ Геолокация получена', 'ok');
-            document.getElementById('perm-geo').classList.add('granted');
-        });
-    }
-
-    // --- NETWORK ---
-    async function measurePing() {
-        const start = performance.now();
+    async function init() {
+        // Настройка камеры мобильного устройства
         try {
-            await fetch(location.href, { method: 'HEAD', cache: 'no-store' });
-            const rtt = Math.round(performance.now() - start);
-            document.getElementById('pingVal').textContent = rtt + 'ms';
-            STATE.rttHist.push(rtt);
-            STATE.rttHist.shift();
-        } catch(e) {}
-    }
-
-    function scanNetwork() {
-        const list = document.getElementById('connList');
-        list.innerHTML = '';
-        const entries = performance.getEntriesByType('resource').slice(-10);
-        entries.forEach(e => {
-            const div = document.createElement('div');
-            div.className = 'ci';
-            const url = new URL(e.name);
-            div.innerHTML = `<div><div class="ch">${url.hostname}</div><div class="cs">${e.initiatorType} | ${(e.transferSize/1024).toFixed(1)}KB</div></div>`;
-            list.appendChild(div);
-        });
-    }
-
-    function reqWebRTC() {
-        log('Запуск WebRTC сканирования...');
-        const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
-        pc.createDataChannel('');
-        pc.createOffer().then(o => pc.setLocalDescription(o));
-        pc.onicecandidate = e => {
-            if (e.candidate && e.candidate.candidate.includes('typ host')) {
-                const ip = e.candidate.candidate.split(' ')[4];
-                document.getElementById('localIp').textContent = ip;
-                log('WebRTC обнаружен: ' + ip, 'e');
-                addThreat('WEBRTC_LEAK');
-            }
-        };
-    }
-
-    // --- INITIALIZATION ---
-    function initBattery() {
-        if(navigator.getBattery) {
-            navigator.getBattery().then(b => {
-                const upd = () => {
-                    document.getElementById('batLevel').textContent = Math.round(b.level * 100) + '%';
-                    document.getElementById('batStatus').textContent = b.charging ? 'CHARGING' : 'DISCHARGING';
-                };
-                b.onlevelchange = upd;
-                b.onchargingchange = upd;
-                upd();
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'environment',
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                }
             });
+            video.srcObject = stream;
+            await video.play();
+        } catch (err) {
+            console.error("Error accessing camera:", err);
+            alert("Не удалось получить доступ к камере.");
         }
+
+        // Инициализация Three.js
+        scene = new THREE.Scene();
+        camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+        
+        renderer = new THREE.WebGLRenderer({
+            canvas: document.getElementById('output-canvas'),
+            antialias: false
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        videoTexture = new THREE.VideoTexture(video);
+        
+        const geometry = new THREE.PlaneGeometry(2, 2);
+        material = new THREE.ShaderMaterial({
+            uniforms: {
+                tDiffuse: { value: videoTexture },
+                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) },
+                sensitivity: { value: sensitivityValue },
+                invert: { value: isInverted }
+            },
+            vertexShader: document.getElementById('vertexShader').textContent,
+            fragmentShader: document.getElementById('fragmentShader').textContent
+        });
+
+        const quad = new THREE.Mesh(geometry, material);
+        scene.add(quad);
+
+        window.addEventListener('resize', onWindowResize);
+        animate();
     }
 
-    function animLoop(now) {
-        STATE.frameCount++;
-        if (now - STATE.lastFrameTime >= 1000) {
-            document.getElementById('fpsVal').textContent = STATE.frameCount;
-            STATE.frameCount = 0;
-            STATE.lastFrameTime = now;
-        }
-        requestAnimationFrame(animLoop);
+    function onWindowResize() {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        renderer.setSize(width, height);
+        material.uniforms.resolution.value.set(width, height);
     }
 
-    window.onload = () => {
-        log('SYS//MONITOR PRO Инициализация...');
-        initBattery();
-        setInterval(updatePerformance, 1000);
-        setInterval(measurePing, 5000);
-        requestAnimationFrame(animLoop);
-        scanNetwork();
-    };
+    function toggleInversion() {
+        isInverted = !isInverted;
+        material.uniforms.invert.value = isInverted;
+    }
+
+    function changeSensitivity() {
+        sensitivityValue = sensitivityValue > 0.2 ? sensitivityValue - 0.1 : 0.6;
+        material.uniforms.sensitivity.value = sensitivityValue;
+    }
+
+    function animate(now) {
+        requestAnimationFrame(animate);
+        
+        // Расчет FPS
+        const delta = now - lastTime;
+        lastTime = now;
+        if (delta > 0) {
+            fpsCounter.innerText = `FPS: ${Math.round(1000 / delta)}`;
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    // Запуск при загрузке
+    window.addEventListener('load', init);
 </script>
+
 </body>
 </html>
