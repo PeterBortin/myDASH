@@ -1,221 +1,1247 @@
 <!DOCTYPE html>
+
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neural Body Scanner</title>
-    <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
+    <title>AXIOM — Volumetric Intelligence Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Rajdhani:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --ui-green: #00ffcc;
-            --ui-yellow: #f8e71c;
-            --bg-overlay: rgba(0, 0, 0, 0.5);
+            --c1: #00ffe7;
+            --c2: #ff3cac;
+            --c3: #f5c400;
+            --c4: #7b2fff;
+            --c-dim: rgba(0,255,231,0.12);
+            --c-mid: rgba(0,255,231,0.45);
+            --bg: #000408;
         }
 
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #000;
-            font-family: 'Chakra Petch', sans-serif;
-            color: var(--ui-green);
-        }
+```
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #app-container {
-            position: relative; width: 100vw; height: 100vh;
-        }
+    body, html {
+        width: 100%; height: 100%;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: 'Share Tech Mono', monospace;
+        color: var(--c1);
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
 
-        video#input-video { display: none; }
+    /* ─── CHROMATIC ABERRATION OVERLAY ─── */
+    #app-container {
+        position: relative;
+        width: 100vw; height: 100vh;
+    }
 
-        canvas#gl-canvas {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%; object-fit: cover;
-            z-index: 1;
-        }
+    /* Hidden video source */
+    video#input-video { display: none; }
 
-        canvas#ui-canvas {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            z-index: 2; pointer-events: none;
-        }
+    /* Layer 1 – WebGL / 3D mesh canvas */
+    canvas#gl-canvas {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        z-index: 1;
+    }
 
-        #loading-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 100;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: opacity 0.5s;
+    /* Layer 2 – HUD / UI canvas */
+    canvas#ui-canvas {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        z-index: 2;
+        pointer-events: none;
+    }
+
+    /* Layer 3 – CSS Vignette + Film grain */
+    #vignette {
+        position: absolute; inset: 0; z-index: 3;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center,
+            transparent 40%,
+            rgba(0,0,0,0.5) 80%,
+            rgba(0,0,0,0.85) 100%);
+    }
+
+    /* Layer 4 – Scanlines */
+    #scanlines {
+        position: absolute; inset: 0; z-index: 4;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            to bottom,
+            transparent 0px,
+            transparent 2px,
+            rgba(0,0,0,0.06) 2px,
+            rgba(0,0,0,0.06) 4px
+        );
+        animation: scanShift 8s linear infinite;
+    }
+
+    @keyframes scanShift {
+        0%   { background-position: 0 0; }
+        100% { background-position: 0 100vh; }
+    }
+
+    /* Layer 5 – Noise grain */
+    #noise {
+        position: absolute; inset: 0; z-index: 5;
+        pointer-events: none;
+        opacity: 0.04;
+        animation: noiseAnim 0.08s steps(1) infinite;
+    }
+
+    @keyframes noiseAnim {
+        0%   { background-position: 0 0; }
+        25%  { background-position: 50% 50%; }
+        50%  { background-position: 100% 0; }
+        75%  { background-position: 0 100%; }
+        100% { background-position: 100% 100%; }
+    }
+
+    /* ─── SCAN LINE SWEEP ─── */
+    #scan-sweep {
+        position: absolute;
+        left: 0; right: 0;
+        height: 2px;
+        z-index: 6;
+        pointer-events: none;
+        background: linear-gradient(to right,
+            transparent,
+            rgba(0,255,231,0.15) 20%,
+            rgba(0,255,231,0.9) 50%,
+            rgba(0,255,231,0.15) 80%,
+            transparent);
+        box-shadow: 0 0 24px 4px rgba(0,255,231,0.4), 0 0 60px 12px rgba(0,255,231,0.12);
+        animation: sweepDown 3.5s ease-in-out infinite;
+        opacity: 0;
+    }
+
+    @keyframes sweepDown {
+        0%   { top: 10%; opacity: 0; }
+        5%   { opacity: 1; }
+        95%  { opacity: 1; }
+        100% { top: 90%; opacity: 0; }
+    }
+
+    /* ─── CORNER BRACKETS ─── */
+    .corner {
+        position: absolute;
+        width: 32px; height: 32px;
+        z-index: 7;
+        pointer-events: none;
+        opacity: 0.9;
+    }
+    .corner svg { width: 100%; height: 100%; }
+    .corner.tl { top: 20px; left: 20px; }
+    .corner.tr { top: 20px; right: 20px; transform: scaleX(-1); }
+    .corner.bl { bottom: 130px; left: 20px; transform: scaleY(-1); }
+    .corner.br { bottom: 130px; right: 20px; transform: scale(-1); }
+
+    /* Pulsing glow on corners */
+    .corner svg path { animation: cornerPulse 2s ease-in-out infinite alternate; }
+    @keyframes cornerPulse {
+        from { filter: drop-shadow(0 0 3px var(--c1)); }
+        to   { filter: drop-shadow(0 0 12px var(--c1)); }
+    }
+
+    /* ─── HEADER BAR ─── */
+    #header-bar {
+        position: absolute;
+        top: 0; left: 0; right: 0;
+        height: 54px;
+        z-index: 8;
+        display: flex;
+        align-items: center;
+        padding: 0 24px;
+        border-bottom: 1px solid rgba(0,255,231,0.15);
+        background: linear-gradient(to bottom, rgba(0,4,8,0.95), transparent);
+        pointer-events: none;
+    }
+
+    #logo {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 18px;
+        letter-spacing: 6px;
+        color: var(--c1);
+        text-shadow: 0 0 18px var(--c1), 0 0 40px rgba(0,255,231,0.4);
+        animation: logoFlicker 6s ease-in-out infinite;
+    }
+
+    @keyframes logoFlicker {
+        0%,94%,96%,100% { opacity: 1; }
+        95% { opacity: 0.6; }
+    }
+
+    #header-right {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        color: var(--c-mid);
+    }
+
+    .status-dot {
+        width: 6px; height: 6px;
+        border-radius: 50%;
+        background: var(--c1);
+        box-shadow: 0 0 8px var(--c1);
+        animation: dotPulse 1.2s ease-in-out infinite;
+    }
+
+    @keyframes dotPulse {
+        0%,100% { opacity: 1; transform: scale(1); }
+        50%      { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    /* ─── LEFT PANEL ─── */
+    #panel-left {
+        position: absolute;
+        left: 20px;
+        top: 70px;
+        width: 180px;
+        z-index: 8;
+        pointer-events: none;
+    }
+
+    .data-block {
+        margin-bottom: 20px;
+        animation: fadeSlideIn 0.6s ease forwards;
+        opacity: 0;
+    }
+
+    .data-block:nth-child(1) { animation-delay: 0.2s; }
+    .data-block:nth-child(2) { animation-delay: 0.4s; }
+    .data-block:nth-child(3) { animation-delay: 0.6s; }
+
+    @keyframes fadeSlideIn {
+        from { opacity: 0; transform: translateX(-20px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .data-label {
+        font-size: 8px;
+        letter-spacing: 2px;
+        color: var(--c-mid);
+        text-transform: uppercase;
+        margin-bottom: 4px;
+    }
+
+    .data-value {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--c1);
+        text-shadow: 0 0 10px var(--c1);
+    }
+
+    .data-value.yellow { color: var(--c3); text-shadow: 0 0 10px var(--c3); }
+    .data-value.pink   { color: var(--c2); text-shadow: 0 0 10px var(--c2); }
+
+    .progress-bar {
+        margin-top: 6px;
+        height: 3px;
+        background: rgba(0,255,231,0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(to right, var(--c4), var(--c1));
+        border-radius: 2px;
+        animation: progressAnim 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes progressAnim {
+        from { width: 62%; }
+        to   { width: 91%; }
+    }
+
+    /* ─── RIGHT PANEL ─── */
+    #panel-right {
+        position: absolute;
+        right: 20px;
+        top: 70px;
+        width: 160px;
+        z-index: 8;
+        pointer-events: none;
+        text-align: right;
+    }
+
+    /* Mini radar */
+    #radar-container {
+        width: 120px;
+        height: 120px;
+        margin-left: auto;
+        position: relative;
+        margin-bottom: 16px;
+        animation: fadeSlideIn2 0.8s 0.3s ease forwards;
+        opacity: 0;
+    }
+
+    @keyframes fadeSlideIn2 {
+        from { opacity: 0; transform: translateX(20px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+
+    #radar-container canvas {
+        width: 100%; height: 100%;
+    }
+
+    /* ─── BOTTOM CONTROLS ─── */
+    #controls-layer {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        height: 115px;
+        z-index: 9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 18px;
+        padding-bottom: 18px;
+        background: linear-gradient(to top, rgba(0,4,8,0.95) 60%, transparent);
+        border-top: 1px solid rgba(0,255,231,0.1);
+    }
+
+    .ctrl-btn {
+        background: rgba(0,255,231,0.05);
+        border: 1px solid rgba(0,255,231,0.3);
+        color: var(--c1);
+        border-radius: 4px;
+        width: 58px; height: 58px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+        position: relative;
+        overflow: hidden;
+        gap: 4px;
+    }
+
+    .ctrl-btn::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: linear-gradient(135deg, var(--c1), var(--c4));
+        opacity: 0;
+        border-radius: 4px;
+        transition: opacity 0.25s;
+        z-index: -1;
+    }
+
+    .ctrl-btn:hover::before,
+    .ctrl-btn:active::before { opacity: 0.15; }
+
+    .ctrl-btn:hover {
+        border-color: var(--c1);
+        box-shadow: 0 0 20px rgba(0,255,231,0.3), inset 0 0 20px rgba(0,255,231,0.05);
+        transform: translateY(-2px);
+    }
+
+    .ctrl-btn:active { transform: translateY(0) scale(0.96); }
+
+    .ctrl-btn svg {
+        width: 20px; height: 20px;
+        fill: var(--c1);
+        filter: drop-shadow(0 0 4px var(--c1));
+    }
+
+    .ctrl-btn span {
+        font-size: 7px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        opacity: 0.7;
+    }
+
+    #btn-scan {
+        width: 72px; height: 72px;
+        border-radius: 50%;
+        border-color: var(--c1);
+        background: radial-gradient(circle at center, rgba(0,255,231,0.12), transparent 70%);
+        box-shadow: 0 0 0 1px rgba(0,255,231,0.15), 0 0 30px rgba(0,255,231,0.2);
+        animation: scanBtnPulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes scanBtnPulse {
+        0%,100% { box-shadow: 0 0 0 1px rgba(0,255,231,0.15), 0 0 30px rgba(0,255,231,0.2); }
+        50%      { box-shadow: 0 0 0 3px rgba(0,255,231,0.2), 0 0 50px rgba(0,255,231,0.35); }
+    }
+
+    #btn-scan svg { width: 28px; height: 28px; }
+
+    /* ─── ALERT TICKER ─── */
+    #alert-ticker {
+        position: absolute;
+        bottom: 116px;
+        left: 0; right: 0;
+        height: 24px;
+        z-index: 8;
+        overflow: hidden;
+        border-top: 1px solid rgba(0,255,231,0.12);
+        border-bottom: 1px solid rgba(0,255,231,0.12);
+        background: rgba(0,4,8,0.7);
+        pointer-events: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .ticker-label {
+        padding: 0 12px;
+        font-family: 'Orbitron', sans-serif;
+        font-size: 8px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        color: var(--c3);
+        text-shadow: 0 0 8px var(--c3);
+        white-space: nowrap;
+        border-right: 1px solid rgba(0,255,231,0.2);
+        min-width: 100px;
+    }
+
+    .ticker-track {
+        flex: 1;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .ticker-text {
+        white-space: nowrap;
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        color: var(--c-mid);
+        animation: tickerScroll 30s linear infinite;
+        display: inline-block;
+        padding-left: 100%;
+    }
+
+    @keyframes tickerScroll {
+        from { transform: translateX(0); }
+        to   { transform: translateX(-100%); }
+    }
+
+    /* ─── GLITCH OVERLAY ─── */
+    #glitch-overlay {
+        position: absolute; inset: 0;
+        z-index: 10;
+        pointer-events: none;
+        opacity: 0;
+    }
+
+    #glitch-overlay.active {
+        animation: glitchFlash 0.15s steps(1) 3;
+    }
+
+    @keyframes glitchFlash {
+        0%,100% { opacity: 0; background: transparent; }
+        50% {
+            opacity: 1;
+            background: linear-gradient(transparent 45%, rgba(0,255,231,0.04) 46%, rgba(0,255,231,0.04) 48%, transparent 49%),
+                        linear-gradient(transparent 70%, rgba(255,60,172,0.04) 71%, rgba(255,60,172,0.04) 73%, transparent 74%);
         }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid rgba(0,255,204,0.1);
-            border-top-color: var(--ui-green); border-radius: 50%;
-            animation: spin 1s linear infinite; margin-bottom: 15px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
+    }
+
+    /* ─── LOADING ─── */
+    #loading-overlay {
+        position: fixed; inset: 0;
+        background: var(--bg);
+        z-index: 200;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 24px;
+        transition: opacity 0.8s ease;
+    }
+
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+    .load-logo {
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 900;
+        font-size: 28px;
+        letter-spacing: 10px;
+        color: var(--c1);
+        text-shadow: 0 0 30px var(--c1), 0 0 80px rgba(0,255,231,0.3);
+        animation: loadLogoAnim 1s ease forwards;
+    }
+
+    @keyframes loadLogoAnim {
+        from { letter-spacing: 20px; opacity: 0; }
+        to   { letter-spacing: 10px; opacity: 1; }
+    }
+
+    .load-bar-wrap {
+        width: 240px;
+        height: 2px;
+        background: rgba(0,255,231,0.1);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .load-bar {
+        height: 100%;
+        background: linear-gradient(to right, var(--c4), var(--c1));
+        width: 0%;
+        transition: width 0.4s ease;
+        box-shadow: 0 0 12px var(--c1);
+    }
+
+    .load-text {
+        font-size: 9px;
+        letter-spacing: 3px;
+        color: var(--c-mid);
+        text-transform: uppercase;
+    }
+
+    /* ─── OBJECT LOCK RING ─── */
+    #lock-ring {
+        position: absolute;
+        z-index: 6;
+        pointer-events: none;
+        border: 1px solid var(--c1);
+        border-radius: 50%;
+        box-shadow: 0 0 20px rgba(0,255,231,0.3), inset 0 0 20px rgba(0,255,231,0.05);
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(1.4);
+        transition: opacity 0.3s, transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        display: none;
+    }
+
+    #lock-ring.visible {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    /* Spinning dashes on lock ring */
+    #lock-ring::before {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: 50%;
+        border: 1px dashed rgba(0,255,231,0.4);
+        animation: spinRing 3s linear infinite;
+    }
+
+    @keyframes spinRing { to { transform: rotate(360deg); } }
+
+    /* ─── DATA STREAM LINES ─── */
+    .stream-line {
+        position: absolute;
+        left: 0; right: 0;
+        height: 1px;
+        z-index: 6;
+        pointer-events: none;
+        background: linear-gradient(to right, transparent, rgba(0,255,231,0.15), transparent);
+        animation: streamLine 4s ease-in-out infinite;
+        opacity: 0;
+    }
+
+    @keyframes streamLine {
+        0%   { opacity: 0; top: 15%; }
+        10%  { opacity: 0.6; }
+        90%  { opacity: 0.6; }
+        100% { opacity: 0; top: 85%; }
+    }
+
+    .stream-line:nth-child(2) { animation-delay: 1.3s; }
+    .stream-line:nth-child(3) { animation-delay: 2.6s; }
+
+    /* ─── CENTER RETICLE ─── */
+    #center-reticle {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 7;
+        pointer-events: none;
+        opacity: 0.5;
+    }
+</style>
+```
+
 </head>
 <body>
 
 <div id="app-container">
+    <!-- Camera input -->
     <video id="input-video" playsinline muted></video>
-    <canvas id="gl-canvas"></canvas>
-    <canvas id="ui-canvas"></canvas>
-    
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <div style="letter-spacing: 2px; font-size: 10px;">INITIALIZING FULL_BODY_SCANNER...</div>
+
+```
+<!-- 3D mesh render -->
+<canvas id="gl-canvas"></canvas>
+
+<!-- HUD -->
+<canvas id="ui-canvas"></canvas>
+
+<!-- Atmospheric layers -->
+<div id="vignette"></div>
+<div id="scanlines"></div>
+<div id="noise"></div>
+
+<!-- Sweep lines -->
+<div id="scan-sweep"></div>
+<div class="stream-line"></div>
+<div class="stream-line"></div>
+<div class="stream-line"></div>
+
+<!-- Glitch -->
+<div id="glitch-overlay"></div>
+
+<!-- Lock ring (follows detected object) -->
+<div id="lock-ring"></div>
+
+<!-- Center reticle -->
+<svg id="center-reticle" width="32" height="32" viewBox="0 0 32 32" fill="none">
+    <line x1="16" y1="2" x2="16" y2="10" stroke="#00ffe7" stroke-width="1" opacity="0.6"/>
+    <line x1="16" y1="22" x2="16" y2="30" stroke="#00ffe7" stroke-width="1" opacity="0.6"/>
+    <line x1="2" y1="16" x2="10" y2="16" stroke="#00ffe7" stroke-width="1" opacity="0.6"/>
+    <line x1="22" y1="16" x2="30" y2="16" stroke="#00ffe7" stroke-width="1" opacity="0.6"/>
+    <circle cx="16" cy="16" r="4" stroke="#00ffe7" stroke-width="0.8" opacity="0.5"/>
+</svg>
+
+<!-- Corner brackets -->
+<div class="corner tl">
+    <svg viewBox="0 0 32 32" fill="none">
+        <path d="M2 30 L2 2 L30 2" stroke="#00ffe7" stroke-width="2" stroke-linecap="square"/>
+    </svg>
+</div>
+<div class="corner tr">
+    <svg viewBox="0 0 32 32" fill="none">
+        <path d="M2 30 L2 2 L30 2" stroke="#00ffe7" stroke-width="2" stroke-linecap="square"/>
+    </svg>
+</div>
+<div class="corner bl">
+    <svg viewBox="0 0 32 32" fill="none">
+        <path d="M2 30 L2 2 L30 2" stroke="#00ffe7" stroke-width="2" stroke-linecap="square"/>
+    </svg>
+</div>
+<div class="corner br">
+    <svg viewBox="0 0 32 32" fill="none">
+        <path d="M2 30 L2 2 L30 2" stroke="#00ffe7" stroke-width="2" stroke-linecap="square"/>
+    </svg>
+</div>
+
+<!-- Header -->
+<div id="header-bar">
+    <div id="logo">AXIOM</div>
+    <div id="header-right">
+        <div class="status-dot"></div>
+        <span>NEURAL LINK ACTIVE</span>
+        <span style="opacity:0.5">|</span>
+        <span id="hdr-time">--:--:--</span>
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<!-- Left panel -->
+<div id="panel-left">
+    <div class="data-block">
+        <div class="data-label">Neural Confidence</div>
+        <div class="data-value" id="conf-val">94.7%</div>
+        <div class="progress-bar"><div class="progress-fill"></div></div>
+    </div>
+    <div class="data-block">
+        <div class="data-label">Render Mode</div>
+        <div class="data-value yellow">VOLUMETRIC</div>
+    </div>
+    <div class="data-block">
+        <div class="data-label">Objects Tracked</div>
+        <div class="data-value pink" id="obj-count">0</div>
+    </div>
+    <div class="data-block">
+        <div class="data-label">Frame Rate</div>
+        <div class="data-value" id="fps-val">-- FPS</div>
+    </div>
+    <div class="data-block">
+        <div class="data-label">Depth Estimation</div>
+        <div class="data-value" id="depth-val">0.00 m</div>
+    </div>
+</div>
+
+<!-- Right panel -->
+<div id="panel-right">
+    <div id="radar-container">
+        <canvas id="radar-canvas" width="120" height="120"></canvas>
+    </div>
+    <div class="data-block" style="animation: fadeSlideIn2 0.8s 0.5s ease forwards; opacity:0; text-align:right;">
+        <div class="data-label" style="justify-content:flex-end; display:flex;">Session ID</div>
+        <div class="data-value" style="font-size:9px; letter-spacing:1px;" id="session-id">AX-000000</div>
+    </div>
+    <div class="data-block" style="animation: fadeSlideIn2 0.8s 0.7s ease forwards; opacity:0; text-align:right;">
+        <div class="data-label" style="justify-content:flex-end; display:flex;">Landmarks</div>
+        <div class="data-value" id="landmark-val">0</div>
+    </div>
+</div>
+
+<!-- Alert ticker -->
+<div id="alert-ticker">
+    <div class="ticker-label">// SYS //</div>
+    <div class="ticker-track">
+        <span class="ticker-text" id="ticker-text">
+            AXIOM VOLUMETRIC INTELLIGENCE SYSTEM v4.2.1 — MEDIAPIPE NEURAL ENGINE ONLINE — HANDS MODULE READY — FACE MESH MODULE READY — DEPTH ESTIMATION ACTIVE — POINT CLOUD RENDERING ENABLED — SKELETON OVERLAY MODE: HOLOGRAPHIC — BIOMETRIC ANALYSIS: PASSIVE — ENCRYPTION: AES-256 — ALL SYSTEMS NOMINAL — STANDBY FOR OBJECT ACQUISITION
+        </span>
+    </div>
+</div>
+
+<!-- Controls -->
+<div id="controls-layer">
+    <button class="ctrl-btn" id="btn-settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.57 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>
+        <span>Config</span>
+    </button>
+    <button class="ctrl-btn" id="btn-mode">
+        <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        <span>Mode</span>
+    </button>
+    <button class="ctrl-btn" id="btn-scan">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4-8c0 2.21-1.79 4-4 4s-4-1.79-4-4 1.79-4 4-4 4 1.79 4 4z"/></svg>
+        <span>Scan</span>
+    </button>
+    <button class="ctrl-btn" id="btn-capture">
+        <svg viewBox="0 0 24 24"><path d="M20 5h-3.17L15 3H9L7.17 5H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-8 13c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+        <span>Capture</span>
+    </button>
+    <button class="ctrl-btn" id="btn-reset">
+        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+        <span>Reset</span>
+    </button>
+</div>
+
+<!-- Loading -->
+<div id="loading-overlay">
+    <div class="load-logo">AXIOM</div>
+    <div class="load-bar-wrap"><div class="load-bar" id="load-bar"></div></div>
+    <div class="load-text" id="load-status">Initializing neural engine...</div>
+</div>
+```
+
+</div>
+
+<!-- MediaPipe -->
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
 
 <script>
-    const videoElement = document.getElementById('input-video');
-    const glCanvas = document.getElementById('gl-canvas');
-    const glCtx = glCanvas.getContext('2d');
-    const uiCanvas = document.getElementById('ui-canvas');
-    const uiCtx = uiCanvas.getContext('2d');
-    const loader = document.getElementById('loading-overlay');
+// ───────────────────────────────────────────────────────
+// CORE SETUP
+// ───────────────────────────────────────────────────────
+const videoElement = document.getElementById('input-video');
+const glCanvas     = document.getElementById('gl-canvas');
+const glCtx        = glCanvas.getContext('2d');
+const uiCanvas     = document.getElementById('ui-canvas');
+const uiCtx        = uiCanvas.getContext('2d');
+const radarCanvas  = document.getElementById('radar-canvas');
+const radarCtx     = radarCanvas.getContext('2d');
+const lockRing     = document.getElementById('lock-ring');
+const glitchEl     = document.getElementById('glitch-overlay');
+const loader       = document.getElementById('loading-overlay');
 
-    let fps = 0;
-    let lastCalledTime;
-    let width = window.innerWidth;
-    let height = window.innerHeight;
+const C1 = '#00ffe7';
+const C2 = '#ff3cac';
+const C3 = '#f5c400';
+const C4 = '#7b2fff';
+const C1_DIM = 'rgba(0,255,231,0.15)';
+const C1_MID = 'rgba(0,255,231,0.5)';
 
-    function onResize() {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        glCanvas.width = uiCanvas.width = width;
-        glCanvas.height = uiCanvas.height = height;
+let W = 0, H = 0;
+let fps = 0, lastTime = 0;
+let modelsLoaded = 0;
+let handResults = null;
+let faceResults = null;
+let renderMode = 0; // 0=full, 1=skeleton, 2=dots
+let scanActive = false;
+let totalLandmarks = 0;
+let sessionId = 'AX-' + Math.floor(Math.random()*999999).toString().padStart(6,'0');
+let radarPoints = [];
+let frameCount = 0;
+
+document.getElementById('session-id').textContent = sessionId;
+
+function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    glCanvas.width = uiCanvas.width = W;
+    glCanvas.height = uiCanvas.height = H;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ───────────────────────────────────────────────────────
+// LOADING SEQUENCE
+// ───────────────────────────────────────────────────────
+const loadBar    = document.getElementById('load-bar');
+const loadStatus = document.getElementById('load-status');
+const loadSteps  = [
+    [20, 'Loading neural weights...'],
+    [45, 'Calibrating hand tracker...'],
+    [65, 'Initializing face mesh...'],
+    [85, 'Warming up GPU renderer...'],
+    [100,'All systems online'],
+];
+let loadStep = 0;
+
+function advanceLoad() {
+    if (loadStep >= loadSteps.length) return;
+    const [pct, msg] = loadSteps[loadStep++];
+    loadBar.style.width = pct + '%';
+    loadStatus.textContent = msg;
+    if (loadStep < loadSteps.length) setTimeout(advanceLoad, 700 + Math.random()*400);
+}
+setTimeout(advanceLoad, 300);
+
+function checkLoader() {
+    modelsLoaded++;
+    if (modelsLoaded >= 2) {
+        loadBar.style.width = '100%';
+        loadStatus.textContent = 'All systems online';
+        setTimeout(() => { loader.classList.add('hidden'); setTimeout(() => loader.style.display='none', 900); }, 800);
     }
-    window.addEventListener('resize', onResize);
-    onResize();
+}
 
-    // --- 1. Инициализация Pose (Тело, Руки, Ноги) ---
-    const pose = new Pose({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+// ───────────────────────────────────────────────────────
+// TIME
+// ───────────────────────────────────────────────────────
+function updateClock() {
+    const n = new Date();
+    document.getElementById('hdr-time').textContent =
+        n.getHours().toString().padStart(2,'0') + ':' +
+        n.getMinutes().toString().padStart(2,'0') + ':' +
+        n.getSeconds().toString().padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ───────────────────────────────────────────────────────
+// GLITCH TRIGGER
+// ───────────────────────────────────────────────────────
+function triggerGlitch() {
+    glitchEl.classList.remove('active');
+    void glitchEl.offsetWidth;
+    glitchEl.classList.add('active');
+}
+setInterval(() => { if(Math.random() < 0.15) triggerGlitch(); }, 4000);
+
+// ───────────────────────────────────────────────────────
+// MEDIAPIPE
+// ───────────────────────────────────────────────────────
+const hands = new Hands({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}` });
+hands.setOptions({ maxNumHands: 2, modelComplexity: 1, minDetectionConfidence: 0.6, minTrackingConfidence: 0.5 });
+hands.onResults(results => {
+    if (!modelsLoaded) checkLoader();
+    handResults = results;
+    renderFrame();
+});
+
+const faceMesh = new FaceMesh({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
+faceMesh.onResults(results => {
+    if (modelsLoaded < 2) checkLoader();
+    faceResults = results;
+});
+
+// ───────────────────────────────────────────────────────
+// 3D MESH RENDERING
+// ───────────────────────────────────────────────────────
+function renderFrame() {
+    frameCount++;
+    const now = performance.now();
+    if (lastTime) {
+        const delta = (now - lastTime) / 1000;
+        fps = Math.round(0.9 * fps + 0.1 * (1 / delta));
+    }
+    lastTime = now;
+
+    glCtx.save();
+    glCtx.clearRect(0, 0, W, H);
+    glCtx.scale(-1, 1);
+    glCtx.translate(-W, 0);
+
+    let objCount = 0;
+    totalLandmarks = 0;
+    let lockX = null, lockY = null, lockR = 0;
+
+    // ── HANDS ──
+    if (handResults && handResults.multiHandLandmarks) {
+        for (const landmarks of handResults.multiHandLandmarks) {
+            objCount++;
+            totalLandmarks += landmarks.length;
+
+            // Skeletal connections with gradient
+            glCtx.save();
+            glCtx.shadowColor = C1;
+            glCtx.shadowBlur = 8;
+            drawConnectors(glCtx, landmarks, HAND_CONNECTIONS, { color: C1_MID, lineWidth: 1.2 });
+            glCtx.restore();
+
+            // Depth-hinted point cloud
+            for (let i = 0; i < landmarks.length; i++) {
+                const p = landmarks[i];
+                const px = p.x * W, py = p.y * H;
+                const depth = 1 - (p.z + 0.5); // 0=far 1=near
+                const r = 2 + depth * 3;
+
+                // Glow
+                glCtx.beginPath();
+                glCtx.arc(px, py, r + 4, 0, Math.PI * 2);
+                const grd = glCtx.createRadialGradient(px, py, 0, px, py, r + 4);
+                grd.addColorStop(0, `rgba(0,255,231,${0.3 * depth})`);
+                grd.addColorStop(1, 'rgba(0,255,231,0)');
+                glCtx.fillStyle = grd;
+                glCtx.fill();
+
+                // Core dot
+                glCtx.beginPath();
+                glCtx.arc(px, py, r, 0, Math.PI * 2);
+                glCtx.fillStyle = (i % 4 === 0) ? C3 : C1;
+                glCtx.shadowColor = (i % 4 === 0) ? C3 : C1;
+                glCtx.shadowBlur = 6;
+                glCtx.fill();
+
+                // Track wrist for lock ring
+                if (i === 0) { lockX = px; lockY = py; lockR = 60; }
+            }
+
+            // Fingertip labels
+            const tips = [4,8,12,16,20];
+            const tipLabels = ['T','I','M','R','P'];
+            glCtx.font = '700 8px "Orbitron"';
+            glCtx.fillStyle = C3;
+            glCtx.shadowColor = C3;
+            glCtx.shadowBlur = 6;
+            for (let t = 0; t < tips.length; t++) {
+                const p = landmarks[tips[t]];
+                glCtx.fillText(tipLabels[t], p.x * W + 6, p.y * H - 4);
+            }
+        }
+    }
+
+    // ── FACE MESH ──
+    if (faceResults && faceResults.multiFaceLandmarks) {
+        for (const landmarks of faceResults.multiFaceLandmarks) {
+            objCount++;
+            totalLandmarks += landmarks.length;
+
+            // Tesselation (fine mesh)
+            glCtx.save();
+            glCtx.shadowColor = C4;
+            glCtx.shadowBlur = 2;
+            drawConnectors(glCtx, landmarks, FACEMESH_TESSELATION, { color: 'rgba(123,47,255,0.25)', lineWidth: 0.5 });
+            glCtx.restore();
+
+            // Key contours with bright lines
+            glCtx.save();
+            glCtx.shadowColor = C1; glCtx.shadowBlur = 6;
+            drawConnectors(glCtx, landmarks, FACEMESH_RIGHT_EYE, { color: C1, lineWidth: 1.2 });
+            drawConnectors(glCtx, landmarks, FACEMESH_LEFT_EYE,  { color: C1, lineWidth: 1.2 });
+            drawConnectors(glCtx, landmarks, FACEMESH_LIPS,       { color: C2, lineWidth: 1 });
+            glCtx.restore();
+
+            // Face center lock
+            const nose = landmarks[1];
+            if (nose) {
+                lockX = nose.x * W; lockY = nose.y * H; lockR = 90;
+            }
+        }
+    }
+
+    glCtx.restore();
+
+    // Lock ring update
+    if (lockX !== null) {
+        lockRing.style.display = 'block';
+        lockRing.style.left = (W - lockX) + 'px'; // mirror back
+        lockRing.style.top  = lockY + 'px';
+        lockRing.style.width  = (lockR * 2) + 'px';
+        lockRing.style.height = (lockR * 2) + 'px';
+        lockRing.classList.add('visible');
+    } else {
+        lockRing.classList.remove('visible');
+    }
+
+    // Update stats
+    document.getElementById('fps-val').textContent = fps + ' FPS';
+    document.getElementById('obj-count').textContent = objCount;
+    document.getElementById('landmark-val').textContent = totalLandmarks;
+    document.getElementById('depth-val').textContent = (0.3 + Math.random() * 0.05).toFixed(2) + ' m';
+    document.getElementById('conf-val').textContent = (90 + Math.random() * 8).toFixed(1) + '%';
+
+    // Radar dots
+    if (lockX !== null && frameCount % 8 === 0) {
+        const rx = (W - lockX) / W;
+        const ry = lockY / H;
+        radarPoints.push({ x: rx, y: ry, age: 0 });
+        if (radarPoints.length > 20) radarPoints.shift();
+    }
+}
+
+// ───────────────────────────────────────────────────────
+// RADAR MINI-MAP
+// ───────────────────────────────────────────────────────
+function drawRadar(ts) {
+    requestAnimationFrame(drawRadar);
+    const s = 120;
+    radarCtx.clearRect(0, 0, s, s);
+
+    // BG
+    radarCtx.fillStyle = 'rgba(0,4,8,0.9)';
+    radarCtx.fillRect(0, 0, s, s);
+    radarCtx.strokeStyle = 'rgba(0,255,231,0.15)';
+    radarCtx.lineWidth = 1;
+    radarCtx.strokeRect(0, 0, s, s);
+
+    // Grid
+    radarCtx.strokeStyle = 'rgba(0,255,231,0.08)';
+    for (let i = 1; i < 4; i++) {
+        radarCtx.beginPath();
+        radarCtx.moveTo(s/4*i, 0); radarCtx.lineTo(s/4*i, s); radarCtx.stroke();
+        radarCtx.beginPath();
+        radarCtx.moveTo(0, s/4*i); radarCtx.lineTo(s, s/4*i); radarCtx.stroke();
+    }
+
+    // Circles
+    radarCtx.strokeStyle = 'rgba(0,255,231,0.1)';
+    [20, 40].forEach(r => {
+        radarCtx.beginPath();
+        radarCtx.arc(s/2, s/2, r, 0, Math.PI*2);
+        radarCtx.stroke();
     });
 
-    pose.setOptions({
-        modelComplexity: 1, // 0 - быстро, 1 - баланс, 2 - точно
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
+    // Sweep
+    const angle = (ts / 1500) % (Math.PI * 2);
+    const grd = radarCtx.createConicalGradient
+        ? radarCtx.createConicalGradient(s/2, s/2, angle)
+        : null;
+
+    // Sweep line
+    radarCtx.save();
+    radarCtx.strokeStyle = C1;
+    radarCtx.lineWidth = 1;
+    radarCtx.shadowColor = C1;
+    radarCtx.shadowBlur = 4;
+    radarCtx.globalAlpha = 0.6;
+    radarCtx.beginPath();
+    radarCtx.moveTo(s/2, s/2);
+    radarCtx.lineTo(s/2 + Math.cos(angle) * 55, s/2 + Math.sin(angle) * 55);
+    radarCtx.stroke();
+    radarCtx.restore();
+
+    // Trailing sweep fill
+    radarCtx.save();
+    radarCtx.globalAlpha = 0.07;
+    radarCtx.fillStyle = C1;
+    radarCtx.beginPath();
+    radarCtx.moveTo(s/2, s/2);
+    radarCtx.arc(s/2, s/2, 55, angle - Math.PI/3, angle);
+    radarCtx.closePath();
+    radarCtx.fill();
+    radarCtx.restore();
+
+    // Blips
+    radarPoints.forEach(pt => {
+        pt.age++;
+        const alpha = Math.max(0, 1 - pt.age / 60);
+        radarCtx.beginPath();
+        radarCtx.arc(pt.x * s, pt.y * s, 2.5, 0, Math.PI*2);
+        radarCtx.fillStyle = `rgba(0,255,231,${alpha})`;
+        radarCtx.shadowColor = C1; radarCtx.shadowBlur = 6;
+        radarCtx.fill();
     });
 
-    pose.onResults(onPoseResults);
+    // Center dot
+    radarCtx.beginPath();
+    radarCtx.arc(s/2, s/2, 2, 0, Math.PI*2);
+    radarCtx.fillStyle = C3;
+    radarCtx.fill();
 
-    // --- 2. Рендеринг скелета ---
-    function onPoseResults(results) {
-        if (loader.style.display !== 'none') {
-            loader.style.opacity = '0';
-            setTimeout(() => loader.style.display = 'none', 500);
-        }
+    // Label
+    radarCtx.font = '600 7px "Orbitron"';
+    radarCtx.fillStyle = 'rgba(0,255,231,0.4)';
+    radarCtx.fillText('RADAR', 4, 10);
+}
+requestAnimationFrame(drawRadar);
 
-        glCtx.save();
-        glCtx.clearRect(0, 0, width, height); 
-        
-        if (results.poseLandmarks) {
-            // Рисуем связи (ноги, руки, торс)
-            // Исключаем голову (индексы 0-10 в Pose отвечают за лицо)
-            // Мы будем использовать стандартные коннекторы, но фильтровать их
-            
-            const landmarks = results.poseLandmarks;
-            
-            // Отрисовка соединений
-            drawConnectors(glCtx, landmarks, POSE_CONNECTIONS, {
-                color: '#00ffcc',
-                lineWidth: 2
-            });
+// ───────────────────────────────────────────────────────
+// HUD CANVAS OVERLAY
+// ───────────────────────────────────────────────────────
+function drawHUD(ts) {
+    requestAnimationFrame(drawHUD);
+    uiCtx.clearRect(0, 0, W, H);
 
-            // Отрисовка ключевых узлов (точек)
-            landmarks.forEach((landmark, index) => {
-                // Пропускаем точки лица (0-10)
-                if (index <= 10) return;
+    if (!modelsLoaded) return;
 
-                const x = landmark.x * width;
-                const y = landmark.y * height;
-                const visibility = landmark.visibility;
+    uiCtx.save();
 
-                if (visibility > 0.5) {
-                    glCtx.beginPath();
-                    glCtx.arc(x, y, 3, 0, 2 * Math.PI);
-                    glCtx.fillStyle = (index > 10 && index < 23) ? '#00ffcc' : '#f8e71c';
-                    glCtx.fill();
-                    
-                    // Эффект "объема" - дополнительные круги
-                    glCtx.beginPath();
-                    glCtx.arc(x, y, 6, 0, 2 * Math.PI);
-                    glCtx.strokeStyle = 'rgba(0, 255, 204, 0.2)';
-                    glCtx.stroke();
-                }
-            });
-        }
-        glCtx.restore();
-    }
+    // Scan frame
+    const fw = W * 0.72, fh = H * 0.56;
+    const fx = (W - fw) / 2, fy = (H - fh) / 2;
+    const cl = 22;
 
-    // --- 3. Отрисовка полноэкранного HUD ---
-    function drawUI() {
-        requestAnimationFrame(drawUI);
-        uiCtx.clearRect(0, 0, width, height);
-        
-        if(!lastCalledTime) { lastCalledTime = Date.now(); return; }
-        let delta = (Date.now() - lastCalledTime)/1000;
-        lastCalledTime = Date.now();
-        fps = Math.round(1/delta);
+    // Frame outline dim
+    uiCtx.strokeStyle = 'rgba(0,255,231,0.08)';
+    uiCtx.lineWidth = 1;
+    uiCtx.strokeRect(fx, fy, fw, fh);
 
-        uiCtx.save();
-        
-        // Полноэкранная рамка (Corner Brackets)
-        const margin = 20;
-        const cl = 40; // Длина угла
-        uiCtx.strokeStyle = '#00ffcc';
-        uiCtx.lineWidth = 2;
+    // Corner brackets bright
+    uiCtx.strokeStyle = C1;
+    uiCtx.lineWidth = 2;
+    uiCtx.shadowColor = C1;
+    uiCtx.shadowBlur = 8;
 
-        // Top-Left
-        uiCtx.beginPath(); uiCtx.moveTo(margin, margin + cl); uiCtx.lineTo(margin, margin); uiCtx.lineTo(margin + cl, margin); uiCtx.stroke();
-        // Top-Right
-        uiCtx.beginPath(); uiCtx.moveTo(width - margin - cl, margin); uiCtx.lineTo(width - margin, margin); uiCtx.lineTo(width - margin, margin + cl); uiCtx.stroke();
-        // Bottom-Left
-        uiCtx.beginPath(); uiCtx.moveTo(margin, height - margin - cl); uiCtx.lineTo(margin, height - margin); uiCtx.lineTo(margin + cl, height - margin); uiCtx.stroke();
-        // Bottom-Right
-        uiCtx.beginPath(); uiCtx.moveTo(width - margin - cl, height - margin); uiCtx.lineTo(width - margin, height - margin); uiCtx.lineTo(width - margin, height - margin - cl); uiCtx.stroke();
-
-        // Текстовая информация
-        uiCtx.font = '10px "Chakra Petch"';
-        uiCtx.fillStyle = '#00ffcc';
-        
-        uiCtx.fillText(`DATA_STREAM: CONNECTED`, margin + 10, margin + 60);
-        uiCtx.fillText(`SCAN_TYPE: FULL_BODY_SEGMENTATION`, margin + 10, margin + 75);
-        uiCtx.fillStyle = (fps > 24) ? '#00ffcc' : '#ff4444';
-        uiCtx.fillText(`ENGINE_FPS: ${fps}`, margin + 10, margin + 90);
-
-        // Индикатор захвата объекта (внизу)
-        uiCtx.textAlign = 'center';
-        uiCtx.fillStyle = '#00ffcc';
-        uiCtx.fillText(`TARGET ACQUISITION: IN_PROGRESS`, width / 2, height - 40);
-        
-        // "Сетка" на фоне (слабая)
-        uiCtx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
-        uiCtx.lineWidth = 1;
+    const corners = [[fx, fy, 1, 1], [fx+fw, fy, -1, 1], [fx, fy+fh, 1, -1], [fx+fw, fy+fh, -1, -1]];
+    corners.forEach(([x, y, dx, dy]) => {
         uiCtx.beginPath();
-        for(let i = 0; i < width; i += 50) { uiCtx.moveTo(i, 0); uiCtx.lineTo(i, height); }
-        for(let i = 0; i < height; i += 50) { uiCtx.moveTo(0, i); uiCtx.lineTo(width, i); }
+        uiCtx.moveTo(x + dx * cl, y);
+        uiCtx.lineTo(x, y);
+        uiCtx.lineTo(x, y + dy * cl);
         uiCtx.stroke();
-
-        uiCtx.restore();
-    }
-
-    // --- 4. Запуск камеры ---
-    const camera = new Camera(videoElement, {
-        onFrame: async () => {
-            await pose.send({image: videoElement});
-        },
-        width: 640,
-        height: 480
     });
 
-    camera.start();
-    drawUI();
+    // Scan line inside frame
+    const scanY = fy + ((ts / 2000) % 1) * fh;
+    const scanGrd = uiCtx.createLinearGradient(fx, 0, fx + fw, 0);
+    scanGrd.addColorStop(0, 'transparent');
+    scanGrd.addColorStop(0.3, 'rgba(0,255,231,0.15)');
+    scanGrd.addColorStop(0.5, 'rgba(0,255,231,0.6)');
+    scanGrd.addColorStop(0.7, 'rgba(0,255,231,0.15)');
+    scanGrd.addColorStop(1, 'transparent');
+    uiCtx.fillStyle = scanGrd;
+    uiCtx.fillRect(fx, scanY - 1, fw, 2);
+
+    // Frame corner micro labels
+    uiCtx.shadowBlur = 0;
+    uiCtx.font = '600 8px "Orbitron"';
+    uiCtx.fillStyle = 'rgba(0,255,231,0.5)';
+    uiCtx.textAlign = 'left';
+    uiCtx.fillText(`${Math.round(fx)},${Math.round(fy)}`, fx + cl + 6, fy + 14);
+    uiCtx.textAlign = 'right';
+    uiCtx.fillText(`${Math.round(fx+fw)},${Math.round(fy+fh)}`, fx + fw - cl - 6, fy + fh - 6);
+
+    // Top center label
+    uiCtx.textAlign = 'center';
+    uiCtx.fillStyle = C1;
+    uiCtx.shadowColor = C1; uiCtx.shadowBlur = 10;
+    uiCtx.font = '700 10px "Orbitron"';
+    uiCtx.fillText('VOLUMETRIC ANALYSIS FIELD', W/2, fy - 12);
+
+    // Status badge (top right of frame)
+    const badgeW = 110, badgeH = 36;
+    const badgeX = fx + fw - badgeW - 2, badgeY = fy + 12;
+    uiCtx.shadowBlur = 0;
+    uiCtx.fillStyle = 'rgba(0,4,8,0.85)';
+    uiCtx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    uiCtx.strokeStyle = 'rgba(0,255,231,0.25)';
+    uiCtx.lineWidth = 1;
+    uiCtx.strokeRect(badgeX, badgeY, badgeW, badgeH);
+    uiCtx.font = '9px "Share Tech Mono"';
+    uiCtx.fillStyle = 'rgba(0,255,231,0.5)';
+    uiCtx.textAlign = 'left';
+    uiCtx.fillText('TARGET CLASS', badgeX + 8, badgeY + 13);
+    uiCtx.font = '700 11px "Orbitron"';
+    uiCtx.fillStyle = C1;
+    uiCtx.fillText('HUMANOID', badgeX + 8, badgeY + 28);
+
+    // Telemetry bottom of frame
+    uiCtx.font = '9px "Share Tech Mono"';
+    uiCtx.fillStyle = C3;
+    uiCtx.shadowColor = C3; uiCtx.shadowBlur = 6;
+    uiCtx.textAlign = 'left';
+    const bY = fy + fh + 20;
+    uiCtx.fillText(`HANDS: ${handResults?.multiHandLandmarks?.length || 0}  |  FACES: ${faceResults?.multiFaceLandmarks?.length || 0}  |  PTS: ${totalLandmarks}`, fx, bY);
+
+    // Depth ruler (left side)
+    const rulerX = fx - 30, rulerTop = fy, rulerH = fh;
+    uiCtx.shadowBlur = 0;
+    uiCtx.strokeStyle = 'rgba(0,255,231,0.3)';
+    uiCtx.lineWidth = 1;
+    uiCtx.beginPath();
+    uiCtx.moveTo(rulerX + 8, rulerTop);
+    uiCtx.lineTo(rulerX + 8, rulerTop + rulerH);
+    uiCtx.stroke();
+
+    for (let i = 0; i <= 5; i++) {
+        const ty = rulerTop + (rulerH / 5) * i;
+        uiCtx.beginPath();
+        uiCtx.moveTo(rulerX + 4, ty);
+        uiCtx.lineTo(rulerX + 12, ty);
+        uiCtx.stroke();
+        uiCtx.font = '7px "Share Tech Mono"';
+        uiCtx.fillStyle = 'rgba(0,255,231,0.4)';
+        uiCtx.textAlign = 'right';
+        uiCtx.fillText((i * 0.5).toFixed(1) + 'm', rulerX + 2, ty + 3);
+    }
+
+    // Depth indicator dot
+    const depthPct = 0.4 + 0.1 * Math.sin(ts / 1000);
+    const depthDotY = rulerTop + rulerH * depthPct;
+    uiCtx.beginPath();
+    uiCtx.arc(rulerX + 8, depthDotY, 4, 0, Math.PI*2);
+    uiCtx.fillStyle = C3;
+    uiCtx.shadowColor = C3; uiCtx.shadowBlur = 8;
+    uiCtx.fill();
+
+    uiCtx.restore();
+}
+requestAnimationFrame(drawHUD);
+
+// ───────────────────────────────────────────────────────
+// CAMERA
+// ───────────────────────────────────────────────────────
+const camera = new Camera(videoElement, {
+    onFrame: async () => {
+        await hands.send({ image: videoElement });
+        await faceMesh.send({ image: videoElement });
+    },
+    width:  window.innerWidth > window.innerHeight ? 640 : 480,
+    height: window.innerWidth > window.innerHeight ? 480 : 640,
+});
+camera.start();
+
+// ───────────────────────────────────────────────────────
+// BUTTON INTERACTIONS
+// ───────────────────────────────────────────────────────
+document.getElementById('btn-scan').addEventListener('click', () => {
+    scanActive = !scanActive;
+    document.getElementById('btn-scan').style.borderColor = scanActive ? C2 : C1;
+    document.getElementById('btn-scan').style.boxShadow = scanActive
+        ? `0 0 30px ${C2}` : '';
+    triggerGlitch();
+});
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+    handResults = null;
+    faceResults = null;
+    radarPoints = [];
+    glCtx.clearRect(0, 0, W, H);
+    lockRing.classList.remove('visible');
+    triggerGlitch();
+});
+
+document.getElementById('btn-capture').addEventListener('click', () => {
+    triggerGlitch();
+    // Flash effect
+    const flash = document.createElement('div');
+    flash.style.cssText = 'position:fixed;inset:0;background:rgba(0,255,231,0.12);z-index:100;pointer-events:none;animation:none;';
+    document.body.appendChild(flash);
+    setTimeout(() => flash.remove(), 200);
+});
+
+document.getElementById('btn-mode').addEventListener('click', () => {
+    renderMode = (renderMode + 1) % 3;
+    triggerGlitch();
+});
+
 </script>
+
 </body>
 </html>
