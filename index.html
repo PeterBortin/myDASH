@@ -29,6 +29,14 @@ body.m3 #cv{visibility:hidden;}
 .chip.off{opacity:.35;}
 .chip.dead{opacity:.15;pointer-events:none;}
 .chip.warn{border-color:var(--red);color:var(--red);}
+#tb3{position:absolute;right:10px;top:50%;transform:translateY(-50%);z-index:6;display:none;flex-direction:column;gap:8px;}
+body.m3 #tb3{display:flex;}
+.tb{min-width:48px;height:38px;border-radius:7px;background:rgba(13,59,37,.92);border:1px solid rgba(106,213,130,.4);color:var(--acc);font:inherit;font-size:9px;letter-spacing:1px;cursor:pointer;touch-action:manipulation;padding:0 6px;}
+.tb.on{border-color:var(--amber);color:var(--amber);}
+#joy{position:absolute;z-index:7;width:96px;height:96px;border-radius:50%;border:1px solid rgba(106,213,130,.4);background:rgba(13,59,37,.35);display:none;pointer-events:none;transform:translate(-50%,-50%);}
+#knob{position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(106,213,130,.5);left:50%;top:50%;transform:translate(-50%,-50%);}
+#toastbox{position:absolute;left:50%;bottom:calc(120px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;}
+.toast{background:rgba(13,59,37,.92);border:1px solid rgba(106,213,130,.35);color:var(--acc);font-size:10px;letter-spacing:1px;padding:6px 12px;border-radius:6px;white-space:nowrap;}
 #loader{position:fixed;inset:0;z-index:50;background:var(--deep);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s;}
 #loader.out{opacity:0;pointer-events:none;}
 .bar{width:210px;height:3px;background:rgba(106,213,130,.15);border-radius:3px;overflow:hidden;}
@@ -43,6 +51,16 @@ body.m3 #cv{visibility:hidden;}
 <video id="vid" playsinline muted autoplay></video>
 <canvas id="cv"></canvas>
 <canvas id="gl"></canvas>
+<div id="tb3">
+  <button class="tb" id="t-zi">＋</button>
+  <button class="tb" id="t-zo">－</button>
+  <button class="tb" id="t-dive">ПІРНУТИ</button>
+  <button class="tb" id="t-ply">PLY</button>
+  <button class="tb" id="t-obj">OBJ</button>
+  <button class="tb" id="t-glb">GLB</button>
+</div>
+<div id="joy"><div id="knob"></div></div>
+<div id="toastbox"></div>
 <div id="panel">
   <button class="chip" id="c-face">ЛИЦЕ</button>
   <button class="chip" id="c-gest">ЖЕСТИ</button>
@@ -131,6 +149,102 @@ function uniqIdx(conns){
   for(const c of conns){ s.add(c.start); s.add(c.end); }
   return [...s];
 }
+// Внутрішня петля ротового отвору (канонічні індекси FaceMesh, 20 ребер)
+const INNER_LIPS=[[78,95],[95,88],[88,178],[178,87],[87,14],[14,317],[317,402],
+[402,318],[318,324],[324,308],[78,191],[191,80],[80,81],[81,82],[82,13],
+[13,312],[312,311],[311,310],[310,415],[415,308]].map(p=>({start:p[0],end:p[1]}));
+// Мапінг лендмарка у простір 3D-сцени (без центрування)
+function mapPt(p,a,mir){
+  return [ (mir?(0.5-p.x):(p.x-0.5))*a*1.4, (0.5-p.y)*1.4, -(p.z||0)*a*1.4 ];
+}
+// Збирач хмари: сутності -> спільні вершини/кольори/ребра (offset-індексація)
+function buildCloud(ents,a,mir,c){
+  const pos=[], col=[], edges=[];
+  for(const e of ents){
+    for(const lm of e.lms){
+      const base=pos.length/3;
+      for(const p of lm){
+        const m=mapPt(p,a,mir);
+        pos.push(m[0]-c[0],m[1]-c[1],m[2]-c[2]);
+        col.push(e.color[0],e.color[1],e.color[2]);
+      }
+      for(const cn of e.conns) edges.push(base+cn.start,base+cn.end);
+    }
+  }
+  return { pos, col, edges };
+}
+// PLY ASCII: вершини з кольором + element edge
+function writePLY(c){
+  const n=c.pos.length/3, m=c.edges.length/2;
+  let s='ply\nformat ascii 1.0\ncomment AXIOM cloud\n'+
+    'element vertex '+n+'\nproperty float x\nproperty float y\nproperty float z\n'+
+    'property uchar red\nproperty uchar green\nproperty uchar blue\n'+
+    'element edge '+m+'\nproperty int vertex1\nproperty int vertex2\nend_header\n';
+  for(let i=0;i<n;i++){
+    const o=i*3;
+    s+=c.pos[o].toFixed(5)+' '+c.pos[o+1].toFixed(5)+' '+c.pos[o+2].toFixed(5)+' '+
+       Math.round(c.col[o]*255)+' '+Math.round(c.col[o+1]*255)+' '+Math.round(c.col[o+2]*255)+'\n';
+  }
+  for(let i=0;i<c.edges.length;i+=2) s+=c.edges[i]+' '+c.edges[i+1]+'\n';
+  return s;
+}
+// OBJ: v з xyzrgb-розширенням + l-лінії (1-індексація)
+function writeOBJ(c){
+  let s='o axiom_cloud\n';
+  const n=c.pos.length/3;
+  for(let i=0;i<n;i++){
+    const o=i*3;
+    s+='v '+c.pos[o].toFixed(5)+' '+c.pos[o+1].toFixed(5)+' '+c.pos[o+2].toFixed(5)+' '+
+       c.col[o].toFixed(3)+' '+c.col[o+1].toFixed(3)+' '+c.col[o+2].toFixed(3)+'\n';
+  }
+  for(let i=0;i<c.edges.length;i+=2) s+='l '+(c.edges[i]+1)+' '+(c.edges[i+1]+1)+'\n';
+  return s;
+}
+// GLB: бінарний glTF 2.0, POINTS + LINES, COLOR_0, uint16-індекси
+function writeGLB(c){
+  const n=c.pos.length/3;
+  const pos=new Float32Array(c.pos), col=new Float32Array(c.col), idx=new Uint16Array(c.edges);
+  const mn=[Infinity,Infinity,Infinity], mx=[-Infinity,-Infinity,-Infinity];
+  for(let i=0;i<n;i++) for(let k=0;k<3;k++){
+    const v=pos[i*3+k]; if(v<mn[k])mn[k]=v; if(v>mx[k])mx[k]=v;
+  }
+  if(!n){ mn.fill(0); mx.fill(0); }
+  const pad4=x=>(4-x%4)%4;
+  const bPos=pos.byteLength, bCol=col.byteLength, bIdx=idx.byteLength;
+  const binLen=bPos+bCol+bIdx+pad4(bIdx);
+  const json={ asset:{version:"2.0",generator:"AXIOM"}, scene:0, scenes:[{nodes:[0]}],
+    nodes:[{mesh:0,name:"axiom_cloud"}],
+    meshes:[{primitives:[
+      {attributes:{POSITION:0,COLOR_0:1},mode:0},
+      {attributes:{POSITION:0,COLOR_0:1},indices:2,mode:1}]}],
+    buffers:[{byteLength:binLen}],
+    bufferViews:[
+      {buffer:0,byteOffset:0,byteLength:bPos},
+      {buffer:0,byteOffset:bPos,byteLength:bCol},
+      {buffer:0,byteOffset:bPos+bCol,byteLength:bIdx}],
+    accessors:[
+      {bufferView:0,componentType:5126,count:n,type:"VEC3",min:mn,max:mx},
+      {bufferView:1,componentType:5126,count:n,type:"VEC3"},
+      {bufferView:2,componentType:5123,count:idx.length,type:"SCALAR"}] };
+  let js=JSON.stringify(json);
+  js+=' '.repeat(pad4(js.length));
+  const total=12+8+js.length+8+binLen;
+  const buf=new ArrayBuffer(total), dv=new DataView(buf), u8=new Uint8Array(buf);
+  let o=0;
+  dv.setUint32(o,0x46546C67,true); o+=4;
+  dv.setUint32(o,2,true); o+=4;
+  dv.setUint32(o,total,true); o+=4;
+  dv.setUint32(o,js.length,true); o+=4;
+  dv.setUint32(o,0x4E4F534A,true); o+=4;
+  for(let i=0;i<js.length;i++) u8[o+i]=js.charCodeAt(i);
+  o+=js.length;
+  dv.setUint32(o,binLen,true); o+=4;
+  dv.setUint32(o,0x004E4942,true); o+=4;
+  u8.set(new Uint8Array(pos.buffer),o); o+=bPos;
+  u8.set(new Uint8Array(col.buffer),o); o+=bCol;
+  u8.set(new Uint8Array(idx.buffer),o);
+  return buf;
+}
 //#endregion PURE
 
 // ── РОЗМІРИ ────────────────────────────────────────────
@@ -155,7 +269,7 @@ resize();
 
 // ── СТАН ───────────────────────────────────────────────
 let FL=null, GR=null, PL=null, SG=null, OD=null;
-let TESS,REYE,LEYE,LIPS,RIRIS,LIRIS,HCONN,PCONN;
+let TESS,REYE,LEYE,RIRIS,LIRIS,HCONN,PCONN;
 let REYE_IDX,LEYE_IDX,RIRIS_IDX,LIRIS_IDX;
 let faceRes=null, gestRes=null, poseRes=null, objRes=null, segCache=null;
 const layer={ face:true, gest:true, pose:false, seg:false, obj:false };
@@ -176,8 +290,14 @@ const pinch=[{on:false,x:0,y:0},{on:false,x:0,y:0}];
 let holdName='', holdSince=0, lastFire=0;
 
 // Тости на канвасі
-const toasts=[];
-function toast(t,ms=1600){ toasts.push({t,until:performance.now()+ms}); if(toasts.length>3)toasts.shift(); }
+const tbox=$('toastbox');
+function toast(t,ms=1600){
+  const el=document.createElement('div');
+  el.className='toast'; el.textContent=t;
+  tbox.appendChild(el);
+  while(tbox.children.length>3) tbox.firstChild.remove();
+  setTimeout(()=>el.remove(),ms);
+}
 
 // ── ЛОАДЕР ─────────────────────────────────────────────
 let prog=0;
@@ -212,7 +332,6 @@ async function initVision(){
   TESS=FaceLandmarker.FACE_LANDMARKS_TESSELATION;
   REYE=FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE;
   LEYE=FaceLandmarker.FACE_LANDMARKS_LEFT_EYE;
-  LIPS=FaceLandmarker.FACE_LANDMARKS_LIPS;
   RIRIS=FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS;
   LIRIS=FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS;
   HCONN=GestureRecognizer.HAND_CONNECTIONS;
@@ -513,7 +632,7 @@ function draw(){
       strokeConn(lm,TESS,TESS_COL,0.6,ox,oy,dw,dh);
       strokeConn(lm,REYE,ACC,1.5,ox,oy,dw,dh);
       strokeConn(lm,LEYE,ACC,1.5,ox,oy,dw,dh);
-      strokeConn(lm,LIPS,ACC,1.5,ox,oy,dw,dh);
+      strokeConn(lm,INNER_LIPS,ACC,1.5,ox,oy,dw,dh);
     }
   }
 
@@ -557,7 +676,7 @@ function draw(){
 
   // 6. Погляд з очей
   if(layer.face && gazeL && gazeR){
-    ctx.strokeStyle='rgba(106,213,130,.85)'; ctx.lineWidth=1.5;
+    ctx.strokeStyle='rgba(255,193,60,.9)'; ctx.lineWidth=1.5;
     for(const g of [gazeL,gazeR]){
       let x=ox+g.cx*dw; const y=oy+g.cy*dh;
       let dx=g.dx*dw; const dy=g.dy*dh;
@@ -617,24 +736,7 @@ function draw(){
     }
   }
 
-  // 9. Тости
-  const tn=performance.now();
-  for(let i=toasts.length-1;i>=0;i--) if(toasts[i].until<tn) toasts.splice(i,1);
-  if(toasts.length){
-    ctx.font=`10px ${FONT}`; ctx.textAlign='center';
-    let ty=H-132;
-    for(const t of toasts){
-      const tw=ctx.measureText(t.t).width+24;
-      ctx.fillStyle='rgba(13,59,37,.92)';
-      ctx.fillRect(W/2-tw/2,ty-17,tw,24);
-      ctx.strokeStyle='rgba(106,213,130,.35)'; ctx.lineWidth=1;
-      ctx.strokeRect(W/2-tw/2,ty-17,tw,24);
-      ctx.fillStyle=ACC; ctx.fillText(t.t,W/2,ty);
-      ty-=30;
-    }
-  }
-
-  // 10. FPS у куті канваса
+  // 9. FPS у куті канваса
   ctx.font=`10px ${FONT}`; ctx.textAlign='left';
   ctx.fillStyle='rgba(0,18,11,.55)';
   ctx.fillRect(8,8,52,14);
@@ -643,7 +745,17 @@ function draw(){
 }
 
 // ── 3D РЕЖИМ ───────────────────────────────────────────
-let THREE=null, scene=null, geo3={}, orbit={ th:0, ph:1.15, r:1.9 };
+let THREE=null, scene=null, geo3={};
+const orbit={ th:0, ph:1.15, r:1.9, vth:0, vph:0 };
+const c3=[0,0,0];                                  // EMA-центроїд хмари
+let fly=false, flyPos=null, flyYaw=0, flyPitch=0;
+let joyId=-1, joyOx=0, joyOy=0, joyVx=0, joyVy=0, lookId=-1;
+let orbN=0, t3last=0;
+let v3a=null, v3b=null, eulT=null;
+const joyEl=$('joy'), knob=$('knob');
+function showJoy(x,y){ joyEl.style.left=x+'px'; joyEl.style.top=y+'px'; joyEl.style.display='block'; }
+function hideJoy(){ joyEl.style.display='none'; knob.style.transform='translate(-50%,-50%)'; }
+
 async function init3D(){
   THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
   renderer=new THREE.WebGLRenderer({ canvas:glc, antialias:false });
@@ -652,6 +764,8 @@ async function init3D(){
   scene=new THREE.Scene();
   scene.background=new THREE.Color(0x00120b);
   cam3=new THREE.PerspectiveCamera(50,W/H,0.01,50);
+  cam3.rotation.order='YXZ';
+  v3a=new THREE.Vector3(); v3b=new THREE.Vector3(); eulT=new THREE.Euler(0,0,0,'YXZ');
   scene.add(new THREE.GridHelper(3,12,0x0d3b25,0x0d3b25).translateY(-0.9));
   const mkLines=(n,color,op)=>{
     const g=new THREE.BufferGeometry();
@@ -671,32 +785,99 @@ async function init3D(){
   geo3.handP=mkPts(42,0xFFC13C,0.02,0.95);
   geo3.poseL=mkLines(PCONN.length*2,0x6AD582,0.45);
   geo3.poseP=mkPts(33,0x6AD582,0.022,0.6);
-  // власний touch-orbit: драг = орбіта, щипок = зум
-  const ptr=new Map();
-  let pd=0;
-  glc.addEventListener('pointerdown',e=>{ ptr.set(e.pointerId,[e.clientX,e.clientY]); glc.setPointerCapture(e.pointerId); });
+  // Вказівники: орбіта (драг+щипок+інерція) / політ (джойстик+огляд)
+  const ptr=new Map(), downs=new Map();
+  let pd=0, lastTap=0, lastTapX=0, lastTapY=0;
+  glc.addEventListener('pointerdown',e=>{
+    glc.setPointerCapture(e.pointerId);
+    downs.set(e.pointerId,{t:performance.now(),x:e.clientX,y:e.clientY});
+    if(fly){
+      if(e.clientX<W/2 && joyId<0){
+        joyId=e.pointerId; joyOx=e.clientX; joyOy=e.clientY;
+        joyVx=joyVy=0; showJoy(e.clientX,e.clientY);
+      } else if(lookId<0){
+        lookId=e.pointerId; ptr.set(e.pointerId,[e.clientX,e.clientY]);
+      }
+    } else {
+      ptr.set(e.pointerId,[e.clientX,e.clientY]); orbN=ptr.size;
+      orbit.vth=orbit.vph=0;
+    }
+  });
   glc.addEventListener('pointermove',e=>{
+    if(fly){
+      if(e.pointerId===joyId){
+        let dx=e.clientX-joyOx, dy=e.clientY-joyOy;
+        const ml=Math.hypot(dx,dy), mx=44;
+        if(ml>mx){ dx=dx/ml*mx; dy=dy/ml*mx; }
+        joyVx=dx/mx; joyVy=dy/mx;
+        knob.style.transform=`translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+      } else if(e.pointerId===lookId && ptr.has(e.pointerId)){
+        const pv=ptr.get(e.pointerId);
+        ptr.set(e.pointerId,[e.clientX,e.clientY]);
+        flyYaw-=(e.clientX-pv[0])*0.004;
+        flyPitch=Math.max(-1.45,Math.min(1.45,flyPitch-(e.clientY-pv[1])*0.004));
+      }
+      return;
+    }
     if(!ptr.has(e.pointerId)) return;
-    const prev=ptr.get(e.pointerId);
+    const pv=ptr.get(e.pointerId);
     ptr.set(e.pointerId,[e.clientX,e.clientY]);
     if(ptr.size===1){
-      orbit.th-=(e.clientX-prev[0])*0.006;
-      orbit.ph=Math.max(0.15,Math.min(3.0,orbit.ph-(e.clientY-prev[1])*0.006));
+      const dx=e.clientX-pv[0], dy=e.clientY-pv[1];
+      orbit.th-=dx*0.006;
+      orbit.ph=Math.max(0.15,Math.min(3.0,orbit.ph-dy*0.006));
+      orbit.vth=-dx*0.006; orbit.vph=-dy*0.006;
     }else if(ptr.size===2){
       const ps=[...ptr.values()];
       const nd=Math.hypot(ps[0][0]-ps[1][0],ps[0][1]-ps[1][1]);
-      if(pd>0) orbit.r=Math.max(0.6,Math.min(4.5,orbit.r*pd/nd));
+      if(pd>0) orbit.r=Math.max(0.25,Math.min(8,orbit.r*pd/nd));
       pd=nd;
     }
   });
-  const up=e=>{ ptr.delete(e.pointerId); if(ptr.size<2) pd=0; };
+  const up=e=>{
+    const d=downs.get(e.pointerId); downs.delete(e.pointerId);
+    if(d && performance.now()-d.t<250 && Math.hypot(e.clientX-d.x,e.clientY-d.y)<12){
+      const tn=performance.now();
+      if(tn-lastTap<330 && Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<40){ resetCam(); lastTap=0; }
+      else { lastTap=tn; lastTapX=e.clientX; lastTapY=e.clientY; }
+    }
+    if(e.pointerId===joyId){ joyId=-1; joyVx=joyVy=0; hideJoy(); }
+    if(e.pointerId===lookId) lookId=-1;
+    ptr.delete(e.pointerId);
+    if(ptr.size<2) pd=0;
+    orbN=ptr.size;
+  };
   glc.addEventListener('pointerup',up);
   glc.addEventListener('pointercancel',up);
 }
+function resetCam(){
+  if(fly) setFly(false,true);
+  orbit.th=0; orbit.ph=1.15; orbit.r=1.9; orbit.vth=orbit.vph=0;
+  toast('Камера скинута.');
+}
+function setFly(on,silent){
+  fly=on;
+  const b=$('t-dive');
+  b.textContent=on?'ВИНИРНУТИ':'ПІРНУТИ';
+  b.classList.toggle('on',on);
+  if(on){
+    flyPos=cam3.position.clone();
+    cam3.lookAt(0,0,0);
+    flyYaw=cam3.rotation.y; flyPitch=cam3.rotation.x;
+    if(!silent) toast('Пірнув. Ліво — хід, право — огляд.');
+  }else{
+    joyId=-1; lookId=-1; joyVx=joyVy=0; hideJoy();
+    const p=cam3.position, r=Math.max(0.25,p.length());
+    orbit.r=Math.min(8,r);
+    orbit.ph=Math.acos(Math.max(-1,Math.min(1,p.y/r)));
+    orbit.th=Math.atan2(p.x,p.z);
+    orbit.vth=orbit.vph=0;
+    if(!silent) toast('Винирнув.');
+  }
+}
 function map3(p,a,out,o){
-  out[o]  =(mirrored?(0.5-p.x):(p.x-0.5))*a*1.4;
-  out[o+1]=(0.5-p.y)*1.4;
-  out[o+2]=-(p.z||0)*a*1.4;
+  const m=mapPt(p,a,mirrored);
+  out[o]=m[0]-c3[0]; out[o+1]=m[1]-c3[1]; out[o+2]=m[2]-c3[2];
 }
 function fillLines(obj,lm,conns,a){
   const arr=obj.geometry.attributes.position.array;
@@ -714,12 +895,18 @@ function fillPts(obj,lms,a){
   obj.geometry.attributes.position.needsUpdate=true;
   obj.visible=o>0;
 }
-function upd3(){
+function upd3(dt){
   const a=(vid.videoWidth||640)/(vid.videoHeight||480);
   const fl=layer.face&&faceRes&&faceRes.faceLandmarks&&faceRes.faceLandmarks.length?faceRes.faceLandmarks:null;
+  const hl=layer.gest&&gestRes&&gestRes.landmarks&&gestRes.landmarks.length?gestRes.landmarks:null;
+  const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
+  // EMA-центроїд усіх видимих точок -> модель завжди в (0,0,0)
+  let sx=0,sy=0,sz=0,n=0;
+  const acc=ls=>{ for(const lm of ls) for(const p of lm){ const m=mapPt(p,a,mirrored); sx+=m[0]; sy+=m[1]; sz+=m[2]; n++; } };
+  if(fl)acc([fl[0]]); if(hl)acc(hl); if(pl)acc([pl[0]]);
+  if(n){ const k=0.15; c3[0]+=(sx/n-c3[0])*k; c3[1]+=(sy/n-c3[1])*k; c3[2]+=(sz/n-c3[2])*k; }
   if(fl){ fillLines(geo3.faceL,fl[0],TESS,a); fillPts(geo3.faceP,[fl[0]],a); }
   else geo3.faceL.visible=geo3.faceP.visible=false;
-  const hl=layer.gest&&gestRes&&gestRes.landmarks&&gestRes.landmarks.length?gestRes.landmarks:null;
   if(hl){
     const arr=geo3.handL.geometry.attributes.position.array;
     let o=0;
@@ -729,18 +916,37 @@ function upd3(){
     geo3.handL.visible=true;
     fillPts(geo3.handP,hl,a);
   } else geo3.handL.visible=geo3.handP.visible=false;
-  const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
   if(pl){ fillLines(geo3.poseL,pl[0],PCONN,a); fillPts(geo3.poseP,[pl[0]],a); }
   else geo3.poseL.visible=geo3.poseP.visible=false;
-  cam3.position.set(
-    orbit.r*Math.sin(orbit.ph)*Math.sin(orbit.th),
-    orbit.r*Math.cos(orbit.ph),
-    orbit.r*Math.sin(orbit.ph)*Math.cos(orbit.th));
-  cam3.lookAt(0,0,0);
+  if(fly){
+    eulT.set(flyPitch,flyYaw,0,'YXZ');
+    v3a.set(0,0,-1).applyEuler(eulT);
+    v3b.set(1,0,0).applyEuler(eulT);
+    flyPos.addScaledVector(v3a,-joyVy*1.6*dt);
+    flyPos.addScaledVector(v3b, joyVx*1.6*dt);
+    cam3.position.copy(flyPos);
+    cam3.rotation.set(flyPitch,flyYaw,0);
+  }else{
+    if(orbN===0){                                  // інерція вибігу
+      orbit.th+=orbit.vth;
+      orbit.ph=Math.max(0.15,Math.min(3.0,orbit.ph+orbit.vph));
+      orbit.vth*=0.93; orbit.vph*=0.93;
+      if(Math.abs(orbit.vth)<1e-4) orbit.vth=0;
+      if(Math.abs(orbit.vph)<1e-4) orbit.vph=0;
+    }
+    cam3.position.set(
+      orbit.r*Math.sin(orbit.ph)*Math.sin(orbit.th),
+      orbit.r*Math.cos(orbit.ph),
+      orbit.r*Math.sin(orbit.ph)*Math.cos(orbit.th));
+    cam3.lookAt(0,0,0);
+  }
 }
 function loop3(){
   if(!mode3d) return;
-  upd3();
+  const tn=performance.now();
+  const dt=t3last?Math.min(0.05,(tn-t3last)/1000):0.016;
+  t3last=tn;
+  upd3(dt);
   renderer.render(scene,cam3);
   requestAnimationFrame(loop3);
 }
@@ -748,6 +954,8 @@ let threeLoading=false;
 async function toggle3D(){
   if(mode3d){
     mode3d=false;
+    if(fly) setFly(false,true);
+    hideJoy();
     document.body.classList.remove('m3');
     $('b-3d').classList.remove('on');
     toast('Назад у 2D.');
@@ -763,9 +971,55 @@ async function toggle3D(){
   mode3d=true;
   document.body.classList.add('m3');
   $('b-3d').classList.add('on');
-  toast('3D. Крутиш пальцем, щипок — зум.');
+  toast('3D. Драг — орбіта, щипок — зум, 2 тапи — скидання.');
+  t3last=0;
   loop3();
 }
+
+// ── ЕКСПОРТ ХМАРИ: PLY / OBJ / GLB ────────────────────
+function collectCloud(){
+  const a=(vid.videoWidth||640)/(vid.videoHeight||480);
+  const ents=[];
+  const fl=layer.face&&faceRes&&faceRes.faceLandmarks&&faceRes.faceLandmarks.length?faceRes.faceLandmarks:null;
+  const hl=layer.gest&&gestRes&&gestRes.landmarks&&gestRes.landmarks.length?gestRes.landmarks:null;
+  const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
+  if(fl) ents.push({ lms:[fl[0]], conns:TESS,  color:[0.416,0.835,0.510] });
+  if(hl) ents.push({ lms:hl,      conns:HCONN, color:[1,0.757,0.235] });
+  if(pl) ents.push({ lms:[pl[0]], conns:PCONN, color:[0.29,0.55,0.36] });
+  return buildCloud(ents,a,mirrored,c3);
+}
+function stamp(){
+  const d=new Date(), p=v=>String(v).padStart(2,'0');
+  return ''+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds());
+}
+function dl(name,data,mime){
+  const u=URL.createObjectURL(new Blob([data],{type:mime}));
+  const el=document.createElement('a');
+  el.href=u; el.download=name;
+  document.body.appendChild(el); el.click();
+  setTimeout(()=>{ URL.revokeObjectURL(u); el.remove(); },1500);
+}
+function doExport(fmt){
+  const c=collectCloud();
+  const n=c.pos.length/3, m=c.edges.length/2;
+  if(!n){ toast('Хмара порожня — нема шо везти.'); return; }
+  const nm=`axiom_cloud_${stamp()}.${fmt}`;
+  if(fmt==='ply') dl(nm,writePLY(c),'text/plain');
+  else if(fmt==='obj') dl(nm,writeOBJ(c),'text/plain');
+  else dl(nm,writeGLB(c),'model/gltf-binary');
+  toast(fmt.toUpperCase()+': '+n+' тчк / '+m+' ребер.');
+}
+function nudgeFly(d){
+  eulT.set(flyPitch,flyYaw,0,'YXZ');
+  v3a.set(0,0,-1).applyEuler(eulT);
+  flyPos.addScaledVector(v3a,d);
+}
+$('t-ply').addEventListener('click',()=>doExport('ply'));
+$('t-obj').addEventListener('click',()=>doExport('obj'));
+$('t-glb').addEventListener('click',()=>doExport('glb'));
+$('t-zi').addEventListener('click',()=>{ if(fly) nudgeFly(0.18); else orbit.r=Math.max(0.25,orbit.r*0.8); });
+$('t-zo').addEventListener('click',()=>{ if(fly) nudgeFly(-0.18); else orbit.r=Math.min(8,orbit.r/0.8); });
+$('t-dive').addEventListener('click',()=>{ if(mode3d&&THREE) setFly(!fly,false); });
 
 // ── КНОПКИ І ЧІПИ ──────────────────────────────────────
 $('b-flip').addEventListener('click',async ()=>{
