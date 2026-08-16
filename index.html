@@ -1,478 +1,289 @@
 <!DOCTYPE html>
-
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>AXIOM Scanner</title>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#00311E">
+<title>AXIOM Lite</title>
 <style>
-:root{--c1:#00ffe7;--c2:#ff3cac;--c3:#f5c400;--c4:#7b2fff;}
+:root{--acc:#6AD582;--deep:#00311E;--panel:#0d3b25;--amber:#FFC13C;--red:#DF2F2E;}
 *{box-sizing:border-box;margin:0;padding:0;}
-body,html{width:100%;height:100%;overflow:hidden;background:#000408;font-family:'Share Tech Mono',monospace;color:var(--c1);user-select:none;-webkit-tap-highlight-color:transparent;}
-#app{position:relative;width:100vw;height:100vh;}
-video{display:none;}
-#mesh-canvas,#hud-canvas{position:absolute;inset:0;width:100%;height:100%;}
-#mesh-canvas{z-index:1;}
-#hud-canvas{z-index:2;pointer-events:none;}
-#scanlines{position:absolute;inset:0;z-index:3;pointer-events:none;background:repeating-linear-gradient(to bottom,transparent 0,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px);}
-#vignette{position:absolute;inset:0;z-index:3;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.72) 100%);}
-#sweep{position:absolute;left:0;right:0;height:1px;z-index:4;pointer-events:none;background:linear-gradient(to right,transparent,rgba(0,255,231,0.08) 20%,rgba(0,255,231,0.5) 50%,rgba(0,255,231,0.08) 80%,transparent);box-shadow:0 0 10px rgba(0,255,231,0.2);animation:sweep 3s ease-in-out infinite;opacity:0;}
-@keyframes sweep{0%{top:10%;opacity:0;}5%{opacity:1;}95%{opacity:1;}100%{top:90%;opacity:0;}}
-#glitch{position:absolute;inset:0;z-index:9;pointer-events:none;opacity:0;}
-.glitching{animation:glitch 0.12s steps(1) 4!important;}
-@keyframes glitch{0%,100%{opacity:0;}50%{opacity:1;background:linear-gradient(transparent 30%,rgba(0,255,231,0.03) 31%,rgba(0,255,231,0.03) 33%,transparent 34%),linear-gradient(transparent 65%,rgba(255,60,172,0.03) 66%,rgba(255,60,172,0.03) 68%,transparent 69%);}}
-#header{position:absolute;top:0;left:0;right:0;height:48px;z-index:10;display:flex;align-items:center;padding:0 20px;background:linear-gradient(to bottom,rgba(0,4,8,0.98),transparent);border-bottom:1px solid rgba(0,255,231,0.12);pointer-events:none;}
-#logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:17px;letter-spacing:7px;color:var(--c1);text-shadow:0 0 16px var(--c1);}
-#hdr-right{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:9px;letter-spacing:1px;color:rgba(0,255,231,0.5);}
-.dot{width:5px;height:5px;border-radius:50%;background:var(--c1);box-shadow:0 0 6px var(--c1);animation:blink 1.4s ease-in-out infinite;}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
-#panel-l{position:absolute;top:60px;left:16px;width:160px;z-index:10;pointer-events:none;}
-.row{margin-bottom:14px;}
-.lbl{font-size:7px;letter-spacing:2px;color:rgba(0,255,231,0.45);text-transform:uppercase;margin-bottom:3px;}
-.val{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--c1);text-shadow:0 0 8px var(--c1);}
-.val.y{color:var(--c3);text-shadow:0 0 8px var(--c3);}
-.val.p{color:var(--c2);text-shadow:0 0 8px var(--c2);}
-.bar{margin-top:5px;height:2px;background:rgba(0,255,231,0.1);border-radius:2px;}
-.bar-fill{height:100%;background:linear-gradient(to right,var(--c4),var(--c1));border-radius:2px;width:0%;transition:width 0.4s;}
-#panel-r{position:absolute;top:60px;right:16px;width:130px;z-index:10;pointer-events:none;text-align:right;}
-#radar-wrap{width:110px;height:110px;margin-left:auto;margin-bottom:14px;}
-#radar-c{width:100%;height:100%;}
-#ticker{position:absolute;bottom:105px;left:0;right:0;height:22px;z-index:10;overflow:hidden;background:rgba(0,4,8,0.8);border-top:1px solid rgba(0,255,231,0.1);border-bottom:1px solid rgba(0,255,231,0.1);display:flex;align-items:center;pointer-events:none;}
-.tick-lbl{padding:0 10px;font-family:'Orbitron',sans-serif;font-size:7px;font-weight:700;letter-spacing:2px;color:var(--c3);white-space:nowrap;border-right:1px solid rgba(0,255,231,0.15);}
-.tick-scroll{flex:1;overflow:hidden;}
-.tick-txt{white-space:nowrap;font-size:8px;letter-spacing:1.5px;color:rgba(0,255,231,0.45);display:inline-block;animation:scroll 28s linear infinite;}
-@keyframes scroll{from{transform:translateX(100vw);}to{transform:translateX(-100%);}}
-#ctrl{position:absolute;bottom:0;left:0;right:0;height:105px;z-index:10;display:flex;justify-content:center;align-items:center;gap:16px;padding-bottom:16px;background:linear-gradient(to top,rgba(0,4,8,0.98) 60%,transparent);border-top:1px solid rgba(0,255,231,0.08);}
-.btn{background:rgba(0,255,231,0.04);border:1px solid rgba(0,255,231,0.28);color:var(--c1);border-radius:3px;width:54px;height:54px;display:flex;flex-direction:column;justify-content:center;align-items:center;cursor:pointer;gap:3px;transition:background 0.15s,box-shadow 0.15s,transform 0.1s;}
-.btn:hover{background:rgba(0,255,231,0.1);box-shadow:0 0 16px rgba(0,255,231,0.25);}
-.btn:active{transform:scale(0.94);}
-.btn svg{width:18px;height:18px;fill:var(--c1);}
-.btn span{font-size:6px;letter-spacing:1.5px;text-transform:uppercase;opacity:0.6;}
-#btn-scan{width:66px;height:66px;border-radius:50%;border-color:rgba(0,255,231,0.5);animation:scanPulse 2.5s ease-in-out infinite;}
-#btn-scan svg{width:26px;height:26px;}
-@keyframes scanPulse{0%,100%{box-shadow:0 0 0 1px rgba(0,255,231,0.1),0 0 20px rgba(0,255,231,0.15);}50%{box-shadow:0 0 0 3px rgba(0,255,231,0.15),0 0 40px rgba(0,255,231,0.3);}}
-.corner{position:absolute;width:28px;height:28px;z-index:5;pointer-events:none;}
-.corner svg path{stroke:var(--c1);filter:drop-shadow(0 0 4px var(--c1));}
-.tl{top:56px;left:16px;}.tr{top:56px;right:16px;transform:scaleX(-1);}
-.bl{bottom:132px;left:16px;transform:scaleY(-1);}.br{bottom:132px;right:16px;transform:scale(-1);}
-#lock{position:absolute;z-index:6;pointer-events:none;border-radius:50%;border:1px solid rgba(0,255,231,0.7);box-shadow:0 0 12px rgba(0,255,231,0.25),inset 0 0 12px rgba(0,255,231,0.05);transition:left 0.06s,top 0.06s,width 0.1s,height 0.1s,opacity 0.3s;opacity:0;display:none;transform:translate(-50%,-50%);}
-#lock::before{content:'';position:absolute;inset:-5px;border-radius:50%;border:1px dashed rgba(0,255,231,0.25);animation:spin 4s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg);}}
-#loader{position:fixed;inset:0;background:#000408;z-index:200;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:20px;transition:opacity 0.7s;}
+html,body{width:100%;height:100%;overflow:hidden;background:#00120b;touch-action:none;overscroll-behavior:none;}
+body{font-family:ui-monospace,'SF Mono','Roboto Mono',Menlo,Consolas,monospace;color:var(--acc);user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.3);z-index:1;}
+#vid.mir{transform:scaleX(-1);}
+#cv{position:absolute;inset:0;z-index:2;}
+#fps{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));font-size:10px;letter-spacing:1px;color:rgba(106,213,130,.55);z-index:5;pointer-events:none;}
+#ctrl{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;gap:14px;padding:14px 0 calc(14px + env(safe-area-inset-bottom));}
+.btn{width:58px;height:58px;border-radius:9px;background:rgba(13,59,37,.92);border:1px solid rgba(106,213,130,.35);color:var(--acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;touch-action:manipulation;transition:opacity .15s;}
+.btn:active{transform:scale(.93);}
+.btn svg{width:20px;height:20px;fill:var(--acc);}
+.btn span{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;opacity:.75;}
+.btn.off{opacity:.35;}
+#loader{position:fixed;inset:0;z-index:50;background:var(--deep);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s;}
 #loader.out{opacity:0;pointer-events:none;}
-.llogo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px;letter-spacing:8px;color:var(--c1);text-shadow:0 0 24px var(--c1);}
-.lbar-wrap{width:220px;height:2px;background:rgba(0,255,231,0.1);border-radius:2px;}
-.lbar{height:100%;background:linear-gradient(to right,var(--c4),var(--c1));border-radius:2px;width:0;box-shadow:0 0 8px var(--c1);transition:width 0.4s;}
-.ltxt{font-size:8px;letter-spacing:2.5px;color:rgba(0,255,231,0.5);}
+.bar{width:210px;height:3px;background:rgba(106,213,130,.15);border-radius:3px;overflow:hidden;}
+#fill{height:100%;width:0;background:var(--acc);transition:width .35s;}
+#fill.err{background:var(--red);}
+#ltxt{font-size:12px;letter-spacing:1px;text-align:center;max-width:82vw;line-height:1.55;}
+#ltxt.err{color:var(--red);}
+#retry{background:var(--panel);border:1px solid rgba(106,213,130,.35);color:var(--acc);font:inherit;font-size:11px;letter-spacing:2px;padding:10px 24px;border-radius:8px;cursor:pointer;margin-top:4px;}
 </style>
 </head>
 <body>
-<div id="app">
-    <video id="vid" playsinline muted></video>
-    <canvas id="mesh-canvas"></canvas>
-    <canvas id="hud-canvas"></canvas>
-    <div id="scanlines"></div>
-    <div id="vignette"></div>
-    <div id="sweep"></div>
-    <div id="glitch"></div>
-    <div id="lock"></div>
-
-```
-<div class="corner tl"><svg viewBox="0 0 28 28" fill="none"><path d="M2 26V2h26" stroke-width="2" stroke-linecap="square"/></svg></div>
-<div class="corner tr"><svg viewBox="0 0 28 28" fill="none"><path d="M2 26V2h26" stroke-width="2" stroke-linecap="square"/></svg></div>
-<div class="corner bl"><svg viewBox="0 0 28 28" fill="none"><path d="M2 26V2h26" stroke-width="2" stroke-linecap="square"/></svg></div>
-<div class="corner br"><svg viewBox="0 0 28 28" fill="none"><path d="M2 26V2h26" stroke-width="2" stroke-linecap="square"/></svg></div>
-
-<div id="header">
-    <div id="logo">AXIOM</div>
-    <div id="hdr-right">
-        <div class="dot"></div>
-        <span>NEURAL LINK</span>
-        <span id="clock">--:--:--</span>
-    </div>
-</div>
-
-<div id="panel-l">
-    <div class="row"><div class="lbl">Frame Rate</div><div class="val" id="v-fps">-- FPS</div><div class="bar"><div class="bar-fill" id="bar-fps"></div></div></div>
-    <div class="row"><div class="lbl">Objects</div><div class="val p" id="v-obj">0</div></div>
-    <div class="row"><div class="lbl">Landmarks</div><div class="val" id="v-pts">0</div></div>
-    <div class="row"><div class="lbl">Confidence</div><div class="val y" id="v-conf">--%</div></div>
-    <div class="row"><div class="lbl">Mode</div><div class="val" style="font-size:9px;letter-spacing:1px;" id="v-mode">VOLUMETRIC</div></div>
-</div>
-
-<div id="panel-r">
-    <div id="radar-wrap"><canvas id="radar-c" width="110" height="110"></canvas></div>
-    <div class="row" style="text-align:right">
-        <div class="lbl">Session</div>
-        <div class="val" id="v-sid" style="font-size:8px;letter-spacing:1px;"></div>
-    </div>
-</div>
-
-<div id="ticker">
-    <div class="tick-lbl">// SYS</div>
-    <div class="tick-scroll"><span class="tick-txt">AXIOM v4.2 — NEURAL ENGINE ONLINE — HAND TRACKER: READY — FACE MESH: READY — DEPTH ANALYSIS ENABLED — POINT CLOUD RENDERER: GPU — BIOMETRIC PASSIVE SCAN — AES-256 — ALL SYSTEMS NOMINAL — STANDBY FOR OBJECT ACQUISITION</span></div>
-</div>
-
+<video id="vid" playsinline muted autoplay></video>
+<canvas id="cv"></canvas>
+<div id="fps">-- fps</div>
 <div id="ctrl">
-    <button class="btn" id="btn-flip">
-        <svg viewBox="0 0 24 24"><path d="M15.5 5H11l5 7-5 7h4.5l5-7zm-7 0H4l5 7-5 7h4.5l5-7z"/></svg>
-        <span>Flip</span>
-    </button>
-    <button class="btn" id="btn-hands">
-        <svg viewBox="0 0 24 24"><path d="M21 7c0-1.1-.9-2-2-2h-1V3c0-1.1-.9-2-2-2s-2 .9-2 2v2h-1c-.37 0-.72.1-1.02.26C11.7 4.1 11.37 4 11 4c-1.1 0-2 .9-2 2v1.28C8.69 7.1 8.37 7 8 7c-1.1 0-2 .9-2 2v5c0 3.31 2.69 6 6 6h2c3.31 0 6-2.69 6-6V7z"/></svg>
-        <span>Hands</span>
-    </button>
-    <button class="btn" id="btn-scan">
-        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4-8c0 2.21-1.79 4-4 4s-4-1.79-4-4 1.79-4 4-4 4 1.79 4 4z"/></svg>
-        <span>Scan</span>
-    </button>
-    <button class="btn" id="btn-face">
-        <svg viewBox="0 0 24 24"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S9.69 11.75 9 11.75zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S15.69 11.75 15 11.75zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-4c-2.33 0-4.32-1.45-5.12-3.5h1.67c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2h1.67c-.8 2.05-2.79 3.5-5.12 3.5z"/></svg>
-        <span>Face</span>
-    </button>
-    <button class="btn" id="btn-reset">
-        <svg viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
-        <span>Reset</span>
-    </button>
+  <button class="btn" id="b-flip" aria-label="Змінити камеру"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 13c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 8.74A7.93 7.93 0 0 0 4 13c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><span>Фліп</span></button>
+  <button class="btn" id="b-hand" aria-label="Руки"><svg viewBox="0 0 24 24"><path d="M21 7c0-1.1-.9-2-2-2h-1V3c0-1.1-.9-2-2-2s-2 .9-2 2v2h-1c-.37 0-.72.1-1.02.26C11.7 4.1 11.37 4 11 4c-1.1 0-2 .9-2 2v1.28C8.69 7.1 8.37 7 8 7c-1.1 0-2 .9-2 2v5c0 3.31 2.69 6 6 6h2c3.31 0 6-2.69 6-6V7z"/></svg><span>Руки</span></button>
+  <button class="btn" id="b-face" aria-label="Обличчя"><svg viewBox="0 0 24 24"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S9.69 11.75 9 11.75zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S15.69 11.75 15 11.75zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-4c-2.33 0-4.32-1.45-5.12-3.5h1.67c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2h1.67c-.8 2.05-2.79 3.5-5.12 3.5z"/></svg><span>Лице</span></button>
 </div>
-
 <div id="loader">
-    <div class="llogo">AXIOM</div>
-    <div class="lbar-wrap"><div class="lbar" id="lbar"></div></div>
-    <div class="ltxt" id="ltxt">INITIALIZING...</div>
+  <div class="bar"><div id="fill"></div></div>
+  <div id="ltxt">Розганяю тачку…</div>
+  <button id="retry" hidden>ЩЕ РАЗ</button>
 </div>
-```
+<script type="module">
+const $=id=>document.getElementById(id);
+const vid=$('vid'), cv=$('cv'), ctx=cv.getContext('2d');
+const fpsEl=$('fps'), ltxt=$('ltxt'), fill=$('fill'), loader=$('loader'), retry=$('retry');
 
-</div>
+const ACC='#6AD582', AMBER='#FFC13C', RED='#DF2F2E';
+const TESS_COL='rgba(106,213,130,0.22)';
+const VER='0.10.14';
+const CDN=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}`;
+const MODELS='https://storage.googleapis.com/mediapipe-models';
 
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
-
-<script>
-// ── SETUP ──────────────────────────────────────────────
-const vid      = document.getElementById('vid');
-const meshC    = document.getElementById('mesh-canvas');
-const meshCtx  = meshC.getContext('2d');
-const hudC     = document.getElementById('hud-canvas');
-const hudCtx   = hudC.getContext('2d');
-const radarC   = document.getElementById('radar-c');
-const radarCtx = radarC.getContext('2d');
-const lockEl   = document.getElementById('lock');
-const glitchEl = document.getElementById('glitch');
-const lbar     = document.getElementById('lbar');
-const ltxt     = document.getElementById('ltxt');
-const loader   = document.getElementById('loader');
-
-const C1='#00ffe7', C2='#ff3cac', C3='#f5c400', C4='#7b2fff';
-let W=0, H=0;
-
+// ── РОЗМІРИ ────────────────────────────────────────────
+let W=0, H=0, DPR=1;
 function resize(){
-    W=window.innerWidth; H=window.innerHeight;
-    meshC.width=hudC.width=W;
-    meshC.height=hudC.height=H;
+  DPR=Math.min(window.devicePixelRatio||1,2);
+  W=window.innerWidth; H=window.innerHeight;
+  cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
+  cv.style.width=W+'px'; cv.style.height=H+'px';
 }
-window.addEventListener('resize',resize); resize();
+addEventListener('resize',resize);
+addEventListener('orientationchange',()=>setTimeout(resize,300));
+resize();
 
-// ── STATE ──────────────────────────────────────────────
-let handData=null, faceData=null;
-let showHands=true, showFace=true, mirrored=true;
-let fps=0, lastFpsTime=performance.now();
-let frameToggle=0;
-let lockX=null, lockY=null, lockR=60;
-let radarBlips=[];
-let modelsReady=0;
-let totalPts=0;
+// ── СТАН ───────────────────────────────────────────────
+let FL=null, HL=null;                 // landmarker-и
+let TESS, REYE, LEYE, LIPS, HCONN;    // таблиці з'єднань
+let faceRes=null, handRes=null;
+let showFace=true, showHands=true;
+let facing='user', mirrored=true, stream=null;
+let frameNo=0, running=false;
+let fpsV=0, lastT=performance.now(), lastFpsUpd=0;
 
-document.getElementById('v-sid').textContent='AX-'+Math.floor(Math.random()*999999).toString().padStart(6,'0');
+// ── ЛОАДЕР / СТАТУСИ (суржиком, як положено) ──────────
+let prog=0;
+function st(t,p){ ltxt.textContent=t; if(p>prog){ prog=p; fill.style.width=p+'%'; } }
+function fail(t){ ltxt.textContent=t; ltxt.classList.add('err'); fill.classList.add('err'); retry.hidden=false; }
+retry.addEventListener('click',()=>location.reload());
 
-// ── LOADER ─────────────────────────────────────────────
-const loadSteps=[[25,'Loading hand tracker...'],[55,'Loading face mesh...'],[80,'Warming GPU renderer...'],[100,'All systems nominal']];
-let ls=0;
-(function nextLoad(){
-    if(ls>=loadSteps.length) return;
-    const [p,m]=loadSteps[ls++];
-    lbar.style.width=p+'%'; ltxt.textContent=m;
-    if(ls<loadSteps.length) setTimeout(nextLoad,600+Math.random()*300);
+// ── КАМЕРА ─────────────────────────────────────────────
+async function startCam(f){
+  if(stream) stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({
+    audio:false,
+    video:{ facingMode:f, width:{ideal:640}, height:{ideal:480} }
+  });
+  vid.srcObject=stream;
+  vid.muted=true;
+  await vid.play();
+}
+function applyMirror(){
+  mirrored = (facing==='user');
+  vid.classList.toggle('mir', mirrored);
+}
+
+// ── НЕЙРОНКА ───────────────────────────────────────────
+async function initVision(){
+  const mp=await import(`${CDN}/vision_bundle.mjs`);
+  const { FilesetResolver, FaceLandmarker, HandLandmarker }=mp;
+  const fs=await FilesetResolver.forVisionTasks(`${CDN}/wasm`);
+  const mk=async (Cls, model, extra)=>{
+    const opts=d=>({ baseOptions:{ modelAssetPath:model, delegate:d }, runningMode:'VIDEO', ...extra });
+    try{ return await Cls.createFromOptions(fs, opts('GPU')); }
+    catch(e){ return await Cls.createFromOptions(fs, opts('CPU')); }
+  };
+  const [f,h]=await Promise.all([
+    mk(FaceLandmarker, `${MODELS}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+       { numFaces:1, outputFaceBlendshapes:false }),
+    mk(HandLandmarker, `${MODELS}/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+       { numHands:2 })
+  ]);
+  FL=f; HL=h;
+  TESS=FaceLandmarker.FACE_LANDMARKS_TESSELATION;
+  REYE=FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE;
+  LEYE=FaceLandmarker.FACE_LANDMARKS_LEFT_EYE;
+  LIPS=FaceLandmarker.FACE_LANDMARKS_LIPS;
+  HCONN=HandLandmarker.HAND_CONNECTIONS;
+}
+
+// ── ЦИКЛ: чергування кадрів ────────────────────────────
+// Парні детекти — руки, непарні — обличчя. Якщо активний
+// лише один — він крутиться щокадру (менша латентність).
+const useRVFC='requestVideoFrameCallback' in HTMLVideoElement.prototype;
+function schedule(){
+  if(!running) return;
+  if(useRVFC) vid.requestVideoFrameCallback(onFrame);
+  else requestAnimationFrame(onFrame);
+}
+function onFrame(){
+  const now=performance.now();
+  if(vid.readyState>=2 && vid.videoWidth){
+    frameNo++;
+    const act=[];
+    if(showHands && HL) act.push(0);
+    if(showFace && FL) act.push(1);
+    if(act.length){
+      const w=act[frameNo % act.length];
+      try{
+        if(w===0) handRes=HL.detectForVideo(vid, now);
+        else      faceRes=FL.detectForVideo(vid, now);
+      }catch(_){}
+    }
+    draw();
+    const dt=(now-lastT)||1; lastT=now;
+    fpsV = fpsV ? fpsV*0.9 + (1000/dt)*0.1 : 1000/dt;
+    if(now-lastFpsUpd>300){
+      const f=Math.round(fpsV);
+      fpsEl.textContent=f+' fps';
+      fpsEl.style.color = f<15 ? RED : f<24 ? AMBER : 'rgba(106,213,130,.55)';
+      lastFpsUpd=now;
+    }
+  }
+  schedule();
+}
+
+// ── РЕНДЕР ─────────────────────────────────────────────
+// cover-мапінг: лендмарки нормовані до кадру відео, а відео
+// обрізане під екран — рахуємо зсув/масштаб і мапимо точки.
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  const vw=vid.videoWidth, vh=vid.videoHeight;
+  if(!vw||!vh) return;
+  const s=Math.max(W/vw, H/vh), dw=vw*s, dh=vh*s;
+  const ox=(W-dw)/2, oy=(H-dh)/2;
+  if(mirrored){ ctx.translate(W,0); ctx.scale(-1,1); }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+
+  if(showFace && faceRes){
+    for(const lm of faceRes.faceLandmarks){
+      strokeConn(lm, TESS, TESS_COL, 0.6, ox,oy,dw,dh);
+      strokeConn(lm, REYE, ACC, 1.5, ox,oy,dw,dh);
+      strokeConn(lm, LEYE, ACC, 1.5, ox,oy,dw,dh);
+      strokeConn(lm, LIPS, ACC, 1.5, ox,oy,dw,dh);
+    }
+  }
+  if(showHands && handRes){
+    for(const lm of handRes.landmarks){
+      strokeConn(lm, HCONN, ACC, 2, ox,oy,dw,dh);
+      dots(lm, AMBER, 3, ox,oy,dw,dh);
+    }
+  }
+}
+// Один beginPath на групу — один stroke, нуль тіней.
+function strokeConn(lm, conns, color, w, ox,oy,dw,dh){
+  ctx.strokeStyle=color; ctx.lineWidth=w;
+  ctx.beginPath();
+  for(let i=0;i<conns.length;i++){
+    const c=conns[i], a=lm[c.start], b=lm[c.end];
+    ctx.moveTo(ox+a.x*dw, oy+a.y*dh);
+    ctx.lineTo(ox+b.x*dw, oy+b.y*dh);
+  }
+  ctx.stroke();
+}
+function dots(lm, color, r, ox,oy,dw,dh){
+  ctx.fillStyle=color;
+  ctx.beginPath();
+  for(const p of lm){
+    const x=ox+p.x*dw, y=oy+p.y*dh;
+    ctx.moveTo(x+r,y); ctx.arc(x,y,r,0,6.2832);
+  }
+  ctx.fill();
+}
+
+// ── КНОПКИ ─────────────────────────────────────────────
+const bH=$('b-hand'), bF=$('b-face'), bFl=$('b-flip');
+bH.addEventListener('click',()=>{
+  showHands=!showHands;
+  if(!showHands) handRes=null;
+  bH.classList.toggle('off',!showHands);
+});
+bF.addEventListener('click',()=>{
+  showFace=!showFace;
+  if(!showFace) faceRes=null;
+  bF.classList.toggle('off',!showFace);
+});
+let flipping=false;
+bFl.addEventListener('click',async ()=>{
+  if(flipping) return;
+  flipping=true; bFl.classList.add('off');
+  const prev=facing;
+  facing = facing==='user' ? 'environment' : 'user';
+  faceRes=null; handRes=null;
+  try{ await startCam(facing); }
+  catch(_){ facing=prev; try{ await startCam(facing); }catch(_2){} }
+  applyMirror();
+  flipping=false; bFl.classList.remove('off');
+});
+
+// Мобільні жести — в топку
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// ── BOOT ───────────────────────────────────────────────
+(async ()=>{
+  try{
+    st('Тягну нейронку з CDN…',12);
+    const vp=initVision();
+    vp.catch(()=>{});                      // ловимо нижче, без unhandled
+    st('Дай добро на камеру, ша…',20);
+    try{ await startCam(facing); }
+    catch(e){ throw { kind:'cam', e }; }
+    applyMirror();
+    st('Камера є. Мізки ще їдуть…',55);
+    try{ await vp; }
+    catch(e){ throw { kind:'cdn', e }; }
+    st('Прогріваю делегата…',92);
+    try{
+      const t=performance.now();
+      if(vid.readyState>=2){ FL.detectForVideo(vid,t); HL.detectForVideo(vid,t+0.1); }
+    }catch(_){}
+    st('Всьо. Погнали!',100);
+    running=true; schedule();
+    setTimeout(()=>{
+      loader.classList.add('out');
+      setTimeout(()=>loader.remove(),600);
+    },350);
+    // Wake lock — щоб екран не засинав посеред скану
+    try{
+      await navigator.wakeLock?.request('screen');
+      document.addEventListener('visibilitychange',()=>{
+        if(document.visibilityState==='visible')
+          navigator.wakeLock?.request('screen').catch(()=>{});
+      });
+    }catch(_){}
+  }catch(err){
+    const e=err.e||err;
+    if(err.kind==='cam'){
+      if(e && (e.name==='NotAllowedError'||e.name==='SecurityError'))
+        fail('Камеру зарубали, брат. Дозволь доступ у налаштуваннях браузера і тисни «ЩЕ РАЗ».');
+      else if(e && e.name==='NotFoundError')
+        fail('Камери не знайшов. Це шо за пристрій такий?');
+      else
+        fail('Камера впала: '+((e&&e.name)||'хз чого')+'. Спробуй «ЩЕ РАЗ».');
+    }else if(err.kind==='cdn'){
+      fail('CDN не доїхав — мережа шкутильгає. Тисни «ЩЕ РАЗ».');
+    }else{
+      fail('Шось пішло по бороді: '+((e&&e.name)||'')+'. Тисни «ЩЕ РАЗ».');
+    }
+  }
 })();
-
-function onModelReady(){
-    modelsReady++;
-    if(modelsReady>=2){
-        lbar.style.width='100%'; ltxt.textContent='All systems online';
-        setTimeout(()=>{ loader.classList.add('out'); setTimeout(()=>loader.style.display='none',750); },600);
-    }
-}
-
-// ── CLOCK ──────────────────────────────────────────────
-setInterval(()=>{
-    const n=new Date();
-    document.getElementById('clock').textContent=
-        String(n.getHours()).padStart(2,'0')+':'+
-        String(n.getMinutes()).padStart(2,'0')+':'+
-        String(n.getSeconds()).padStart(2,'0');
-},1000);
-
-// ── GLITCH ─────────────────────────────────────────────
-function glitch(){
-    glitchEl.classList.remove('glitching');
-    void glitchEl.offsetWidth;
-    glitchEl.classList.add('glitching');
-}
-setInterval(()=>{ if(Math.random()<0.12) glitch(); },3500);
-
-// ── MEDIAPIPE SETUP ────────────────────────────────────
-const hands = new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-hands.setOptions({maxNumHands:2, modelComplexity:0, minDetectionConfidence:0.6, minTrackingConfidence:0.5});
-hands.onResults(r=>{ handData=r; if(!modelsReady) onModelReady(); drawMesh(); });
-
-const face = new FaceMesh({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`});
-face.setOptions({maxNumFaces:1, refineLandmarks:false, minDetectionConfidence:0.55, minTrackingConfidence:0.5});
-face.onResults(r=>{ faceData=r; if(modelsReady<2) onModelReady(); drawMesh(); });
-
-// ── CAMERA: ALTERNATING FRAMES ─────────────────────────
-// CRITICAL OPTIMISATION: never run both models on the same frame.
-// Even frames → hands, odd frames → face.
-// This halves CPU usage and eliminates stutter.
-const camera = new Camera(vid, {
-    onFrame: async ()=>{
-        frameToggle++;
-        if(frameToggle%2===0){ if(showHands) await hands.send({image:vid}); }
-        else                  { if(showFace)  await face.send({image:vid});  }
-    },
-    width: Math.min(640, window.innerWidth),
-    height: Math.min(480, window.innerHeight)
-});
-camera.start();
-
-// ── MESH RENDER ────────────────────────────────────────
-// Called by model callbacks — no rAF here, so it only runs when data arrives.
-function drawMesh(){
-    // FPS
-    const now=performance.now();
-    fps = Math.round(fps*0.85 + (1000/(now-lastFpsTime))*0.15);
-    lastFpsTime=now;
-
-    meshCtx.save();
-    meshCtx.clearRect(0,0,W,H);
-    if(mirrored){ meshCtx.scale(-1,1); meshCtx.translate(-W,0); }
-
-    let objCount=0; totalPts=0; lockX=null; lockY=null;
-
-    // HANDS
-    if(showHands && handData?.multiHandLandmarks){
-        for(const lm of handData.multiHandLandmarks){
-            objCount++; totalPts+=lm.length;
-
-            // Connections
-            drawConnectors(meshCtx,lm,HAND_CONNECTIONS,{color:'rgba(0,255,231,0.6)',lineWidth:1.5});
-
-            // Points — no per-point shadow (huge perf win)
-            for(let i=0;i<lm.length;i++){
-                const p=lm[i];
-                meshCtx.beginPath();
-                meshCtx.arc(p.x*W, p.y*H, 2.5, 0, Math.PI*2);
-                meshCtx.fillStyle=(i%4===0)?C3:C1;
-                meshCtx.fill();
-            }
-
-            // Single cheap glow via blur composite
-            meshCtx.save();
-            meshCtx.globalCompositeOperation='screen';
-            meshCtx.globalAlpha=0.2;
-            meshCtx.filter='blur(5px)';
-            drawConnectors(meshCtx,lm,HAND_CONNECTIONS,{color:C1,lineWidth:5});
-            meshCtx.restore();
-
-            lockX=lm[0].x*W; lockY=lm[0].y*H; lockR=55;
-        }
-    }
-
-    // FACE
-    if(showFace && faceData?.multiFaceLandmarks){
-        for(const lm of faceData.multiFaceLandmarks){
-            objCount++; totalPts+=lm.length;
-
-            meshCtx.globalAlpha=0.2;
-            drawConnectors(meshCtx,lm,FACEMESH_TESSELATION,{color:'rgba(123,47,255,1)',lineWidth:0.5});
-            meshCtx.globalAlpha=1;
-
-            drawConnectors(meshCtx,lm,FACEMESH_RIGHT_EYE,{color:C1,lineWidth:1.2});
-            drawConnectors(meshCtx,lm,FACEMESH_LEFT_EYE, {color:C1,lineWidth:1.2});
-            drawConnectors(meshCtx,lm,FACEMESH_LIPS,      {color:C2,lineWidth:1});
-
-            meshCtx.save();
-            meshCtx.globalCompositeOperation='screen';
-            meshCtx.globalAlpha=0.14;
-            meshCtx.filter='blur(5px)';
-            drawConnectors(meshCtx,lm,FACEMESH_RIGHT_EYE,{color:C1,lineWidth:5});
-            drawConnectors(meshCtx,lm,FACEMESH_LEFT_EYE, {color:C1,lineWidth:5});
-            meshCtx.restore();
-
-            if(lm[1]){ lockX=lm[1].x*W; lockY=lm[1].y*H; lockR=80; }
-        }
-    }
-
-    meshCtx.restore();
-
-    // Lock ring (un-mirror)
-    if(lockX!==null){
-        const rx=mirrored?W-lockX:lockX;
-        lockEl.style.display='block';
-        lockEl.style.opacity='1';
-        lockEl.style.left=rx+'px';
-        lockEl.style.top=lockY+'px';
-        lockEl.style.width=(lockR*2)+'px';
-        lockEl.style.height=(lockR*2)+'px';
-        radarBlips.push({x:rx/W,y:lockY/H,age:0});
-        if(radarBlips.length>15) radarBlips.shift();
-    } else {
-        lockEl.style.opacity='0';
-    }
-
-    // DOM stats — batch update
-    document.getElementById('v-fps').textContent=fps+' FPS';
-    document.getElementById('v-obj').textContent=objCount;
-    document.getElementById('v-pts').textContent=totalPts;
-    document.getElementById('v-conf').textContent=(88+Math.random()*10).toFixed(1)+'%';
-    document.getElementById('bar-fps').style.width=Math.min(100,fps/60*100)+'%';
-}
-
-// ── HUD CANVAS ─────────────────────────────────────────
-function drawHUD(ts){
-    requestAnimationFrame(drawHUD);
-    hudCtx.clearRect(0,0,W,H);
-    hudCtx.save();
-
-    const fw=W*0.7, fh=H*0.54;
-    const fx=(W-fw)/2, fy=(H-fh)/2;
-    const cl=18;
-
-    // Dim outline
-    hudCtx.strokeStyle='rgba(0,255,231,0.07)';
-    hudCtx.lineWidth=1;
-    hudCtx.strokeRect(fx,fy,fw,fh);
-
-    // Bright corners
-    hudCtx.strokeStyle=C1; hudCtx.lineWidth=1.8;
-    hudCtx.shadowColor=C1; hudCtx.shadowBlur=6;
-    [[fx,fy,1,1],[fx+fw,fy,-1,1],[fx,fy+fh,1,-1],[fx+fw,fy+fh,-1,-1]].forEach(([x,y,dx,dy])=>{
-        hudCtx.beginPath();
-        hudCtx.moveTo(x+dx*cl,y); hudCtx.lineTo(x,y); hudCtx.lineTo(x,y+dy*cl);
-        hudCtx.stroke();
-    });
-    hudCtx.shadowBlur=0;
-
-    // Scan line inside frame
-    const sy=fy+((ts/2200)%1)*fh;
-    const sg=hudCtx.createLinearGradient(fx,0,fx+fw,0);
-    sg.addColorStop(0,'transparent');
-    sg.addColorStop(.35,'rgba(0,255,231,0.1)');
-    sg.addColorStop(.5,'rgba(0,255,231,0.55)');
-    sg.addColorStop(.65,'rgba(0,255,231,0.1)');
-    sg.addColorStop(1,'transparent');
-    hudCtx.fillStyle=sg;
-    hudCtx.fillRect(fx,sy-1,fw,2);
-
-    // Top label
-    hudCtx.font='700 9px "Orbitron"'; hudCtx.fillStyle='rgba(0,255,231,0.5)'; hudCtx.textAlign='center';
-    hudCtx.fillText('VOLUMETRIC ANALYSIS FIELD',W/2,fy-10);
-
-    // Bottom telemetry
-    hudCtx.font='8px "Share Tech Mono"'; hudCtx.fillStyle='rgba(245,196,0,0.7)'; hudCtx.textAlign='left';
-    hudCtx.fillText(`HANDS:${handData?.multiHandLandmarks?.length||0}  FACES:${faceData?.multiFaceLandmarks?.length||0}  PTS:${totalPts}  FPS:${fps}`,fx,fy+fh+16);
-
-    // Depth ruler
-    const rx2=fx-24;
-    hudCtx.strokeStyle='rgba(0,255,231,0.25)'; hudCtx.lineWidth=1;
-    hudCtx.beginPath(); hudCtx.moveTo(rx2+6,fy); hudCtx.lineTo(rx2+6,fy+fh); hudCtx.stroke();
-    for(let i=0;i<=5;i++){
-        const ty=fy+(fh/5)*i;
-        hudCtx.beginPath(); hudCtx.moveTo(rx2+2,ty); hudCtx.lineTo(rx2+10,ty); hudCtx.stroke();
-        hudCtx.font='6px "Share Tech Mono"'; hudCtx.fillStyle='rgba(0,255,231,0.35)'; hudCtx.textAlign='right';
-        hudCtx.fillText((i*0.5).toFixed(1),rx2,ty+3);
-    }
-    // Depth marker
-    const dm=fy+fh*(0.35+0.12*Math.sin(ts/900));
-    hudCtx.beginPath(); hudCtx.arc(rx2+6,dm,3.5,0,Math.PI*2);
-    hudCtx.fillStyle=C3; hudCtx.shadowColor=C3; hudCtx.shadowBlur=6; hudCtx.fill(); hudCtx.shadowBlur=0;
-
-    hudCtx.restore();
-}
-requestAnimationFrame(drawHUD);
-
-// ── RADAR ──────────────────────────────────────────────
-function drawRadar(ts){
-    requestAnimationFrame(drawRadar);
-    const s=110;
-    radarCtx.clearRect(0,0,s,s);
-    radarCtx.fillStyle='rgba(0,4,8,0.92)'; radarCtx.fillRect(0,0,s,s);
-    radarCtx.strokeStyle='rgba(0,255,231,0.08)'; radarCtx.lineWidth=1;
-    for(let i=1;i<4;i++){
-        radarCtx.beginPath();radarCtx.moveTo(s/4*i,0);radarCtx.lineTo(s/4*i,s);radarCtx.stroke();
-        radarCtx.beginPath();radarCtx.moveTo(0,s/4*i);radarCtx.lineTo(s,s/4*i);radarCtx.stroke();
-    }
-    radarCtx.strokeStyle='rgba(0,255,231,0.07)';
-    [22,44].forEach(r=>{ radarCtx.beginPath();radarCtx.arc(s/2,s/2,r,0,Math.PI*2);radarCtx.stroke(); });
-    radarCtx.strokeStyle='rgba(0,255,231,0.18)'; radarCtx.strokeRect(0,0,s,s);
-
-    const a=(ts/1800)%(Math.PI*2);
-    radarCtx.save();
-    radarCtx.globalAlpha=0.08; radarCtx.fillStyle=C1;
-    radarCtx.beginPath(); radarCtx.moveTo(s/2,s/2);
-    radarCtx.arc(s/2,s/2,52,a-Math.PI/2.5,a); radarCtx.closePath(); radarCtx.fill();
-    radarCtx.restore();
-
-    radarCtx.strokeStyle=C1; radarCtx.lineWidth=1; radarCtx.shadowColor=C1; radarCtx.shadowBlur=4; radarCtx.globalAlpha=0.6;
-    radarCtx.beginPath(); radarCtx.moveTo(s/2,s/2); radarCtx.lineTo(s/2+Math.cos(a)*52,s/2+Math.sin(a)*52); radarCtx.stroke();
-    radarCtx.globalAlpha=1; radarCtx.shadowBlur=0;
-
-    radarBlips.forEach(b=>{
-        b.age++;
-        const al=Math.max(0,1-b.age/80);
-        if(al<=0) return;
-        radarCtx.beginPath(); radarCtx.arc(b.x*s,b.y*s,2.5,0,Math.PI*2);
-        radarCtx.fillStyle=`rgba(0,255,231,${al})`; radarCtx.shadowColor=C1; radarCtx.shadowBlur=5; radarCtx.fill();
-    });
-
-    radarCtx.beginPath(); radarCtx.arc(s/2,s/2,2,0,Math.PI*2);
-    radarCtx.fillStyle=C3; radarCtx.shadowColor=C3; radarCtx.shadowBlur=6; radarCtx.fill(); radarCtx.shadowBlur=0;
-    radarCtx.font='600 6px "Orbitron"'; radarCtx.fillStyle='rgba(0,255,231,0.35)'; radarCtx.textAlign='left';
-    radarCtx.fillText('RADAR',3,9);
-}
-requestAnimationFrame(drawRadar);
-
-// ── BUTTONS ────────────────────────────────────────────
-document.getElementById('btn-scan').addEventListener('click',()=>{
-    glitch();
-    const b=document.getElementById('btn-scan');
-    b.style.borderColor=C2; b.style.boxShadow=`0 0 30px ${C2}`;
-    setTimeout(()=>{ b.style.borderColor=''; b.style.boxShadow=''; },500);
-});
-document.getElementById('btn-reset').addEventListener('click',()=>{
-    handData=null; faceData=null; radarBlips=[];
-    lockEl.style.opacity='0'; meshCtx.clearRect(0,0,W,H); glitch();
-});
-document.getElementById('btn-hands').addEventListener('click',()=>{
-    showHands=!showHands;
-    document.getElementById('btn-hands').style.opacity=showHands?'1':'0.35';
-    document.getElementById('v-mode').textContent=showHands&&showFace?'VOLUMETRIC':showHands?'HANDS ONLY':'FACE ONLY';
-});
-document.getElementById('btn-face').addEventListener('click',()=>{
-    showFace=!showFace;
-    document.getElementById('btn-face').style.opacity=showFace?'1':'0.35';
-    document.getElementById('v-mode').textContent=showHands&&showFace?'VOLUMETRIC':showHands?'HANDS ONLY':'FACE ONLY';
-});
-document.getElementById('btn-flip').addEventListener('click',()=>{
-    mirrored=!mirrored;
-    document.getElementById('btn-flip').style.opacity=mirrored?'1':'0.5';
-});
 </script>
-
 </body>
 </html>
