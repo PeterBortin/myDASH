@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#00311E">
-<title>AXIOM Lite</title>
+<title>AXIOM</title>
 <style>
 :root{--acc:#6AD582;--deep:#00311E;--panel:#0d3b25;--amber:#FFC13C;--red:#DF2F2E;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -13,13 +13,22 @@ body{font-family:ui-monospace,'SF Mono','Roboto Mono',Menlo,Consolas,monospace;c
 #vid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.3);z-index:1;}
 #vid.mir{transform:scaleX(-1);}
 #cv{position:absolute;inset:0;z-index:2;}
-#fps{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(10px + env(safe-area-inset-left));font-size:10px;letter-spacing:1px;color:rgba(106,213,130,.55);z-index:5;pointer-events:none;}
-#ctrl{position:absolute;left:0;right:0;bottom:0;z-index:5;display:flex;justify-content:center;gap:14px;padding:14px 0 calc(14px + env(safe-area-inset-bottom));}
+#gl{position:absolute;inset:0;z-index:3;display:none;touch-action:none;}
+body.m3 #gl{display:block;}
+body.m3 #cv{visibility:hidden;}
+#ctrl{position:absolute;left:0;right:0;bottom:0;z-index:6;display:flex;justify-content:center;gap:14px;padding:14px 0 calc(14px + env(safe-area-inset-bottom));}
 .btn{width:58px;height:58px;border-radius:9px;background:rgba(13,59,37,.92);border:1px solid rgba(106,213,130,.35);color:var(--acc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;touch-action:manipulation;transition:opacity .15s;}
 .btn:active{transform:scale(.93);}
 .btn svg{width:20px;height:20px;fill:var(--acc);}
 .btn span{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;opacity:.75;}
 .btn.off{opacity:.35;}
+.btn.on{border-color:var(--amber);box-shadow:0 0 10px rgba(255,193,60,.25);}
+#panel{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:6;display:none;grid-template-columns:repeat(3,1fr);gap:8px;background:rgba(13,59,37,.95);border:1px solid rgba(106,213,130,.35);border-radius:10px;padding:10px;}
+#panel.open{display:grid;}
+.chip{min-width:74px;height:36px;border-radius:7px;background:rgba(0,49,30,.9);border:1px solid rgba(106,213,130,.4);color:var(--acc);font:inherit;font-size:9px;letter-spacing:1.5px;cursor:pointer;touch-action:manipulation;}
+.chip.off{opacity:.35;}
+.chip.dead{opacity:.15;pointer-events:none;}
+.chip.warn{border-color:var(--red);color:var(--red);}
 #loader{position:fixed;inset:0;z-index:50;background:var(--deep);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;transition:opacity .5s;}
 #loader.out{opacity:0;pointer-events:none;}
 .bar{width:210px;height:3px;background:rgba(106,213,130,.15);border-radius:3px;overflow:hidden;}
@@ -33,11 +42,19 @@ body{font-family:ui-monospace,'SF Mono','Roboto Mono',Menlo,Consolas,monospace;c
 <body>
 <video id="vid" playsinline muted autoplay></video>
 <canvas id="cv"></canvas>
-<div id="fps">-- fps</div>
+<canvas id="gl"></canvas>
+<div id="panel">
+  <button class="chip" id="c-face">ЛИЦЕ</button>
+  <button class="chip" id="c-gest">ЖЕСТИ</button>
+  <button class="chip" id="c-pose">ПОЗА</button>
+  <button class="chip" id="c-seg">СЕГМ</button>
+  <button class="chip" id="c-obj">ОБ'ЄКТИ</button>
+  <button class="chip warn" id="c-clear">СТЕРТИ</button>
+</div>
 <div id="ctrl">
   <button class="btn" id="b-flip" aria-label="Змінити камеру"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 13c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 8.74A7.93 7.93 0 0 0 4 13c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><span>Фліп</span></button>
-  <button class="btn" id="b-hand" aria-label="Руки"><svg viewBox="0 0 24 24"><path d="M21 7c0-1.1-.9-2-2-2h-1V3c0-1.1-.9-2-2-2s-2 .9-2 2v2h-1c-.37 0-.72.1-1.02.26C11.7 4.1 11.37 4 11 4c-1.1 0-2 .9-2 2v1.28C8.69 7.1 8.37 7 8 7c-1.1 0-2 .9-2 2v5c0 3.31 2.69 6 6 6h2c3.31 0 6-2.69 6-6V7z"/></svg><span>Руки</span></button>
-  <button class="btn" id="b-face" aria-label="Обличчя"><svg viewBox="0 0 24 24"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S9.69 11.75 9 11.75zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S15.69 11.75 15 11.75zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-4c-2.33 0-4.32-1.45-5.12-3.5h1.67c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2h1.67c-.8 2.05-2.79 3.5-5.12 3.5z"/></svg><span>Лице</span></button>
+  <button class="btn" id="b-layers" aria-label="Шари"><svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg><span>Шари</span></button>
+  <button class="btn" id="b-3d" aria-label="3D режим"><svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.2L19.5 8 12 11.8 4.5 8 12 4.2zM4 9.6l7 3.5v6.6l-7-3.5V9.6zm16 6.6l-7 3.5v-6.6l7-3.5v6.6z"/></svg><span>3D</span></button>
 </div>
 <div id="loader">
   <div class="bar"><div id="fill"></div></div>
@@ -46,39 +63,126 @@ body{font-family:ui-monospace,'SF Mono','Roboto Mono',Menlo,Consolas,monospace;c
 </div>
 <script type="module">
 const $=id=>document.getElementById(id);
-const vid=$('vid'), cv=$('cv'), ctx=cv.getContext('2d');
-const fpsEl=$('fps'), ltxt=$('ltxt'), fill=$('fill'), loader=$('loader'), retry=$('retry');
+const vid=$('vid'), cv=$('cv'), ctx=cv.getContext('2d'), glc=$('gl');
+const ltxt=$('ltxt'), fill=$('fill'), loader=$('loader'), retry=$('retry');
+const panel=$('panel');
 
 const ACC='#6AD582', AMBER='#FFC13C', RED='#DF2F2E';
+const ACC_D='rgba(106,213,130,.55)';
 const TESS_COL='rgba(106,213,130,0.22)';
 const VER='0.10.14';
 const CDN=`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${VER}`;
 const MODELS='https://storage.googleapis.com/mediapipe-models';
+const FONT="ui-monospace,'SF Mono','Roboto Mono',Menlo,Consolas,monospace";
+
+//#region PURE — чиста математика, ганяється у headless-харнесі
+function coverMap(vw,vh,W,H){
+  const s=Math.max(W/vw,H/vh), dw=vw*s, dh=vh*s;
+  return { s, dw, dh, ox:(W-dw)/2, oy:(H-dh)/2 };
+}
+// Зважений round-robin: [['face',2],['gest',2],['pose',1]] -> f,g,p,f,g
+function buildQueue(items){
+  const left=items.map(i=>i[1]), q=[];
+  let rem=left.reduce((a,b)=>a+b,0);
+  while(rem>0){
+    for(let i=0;i<items.length;i++){
+      if(left[i]>0){ q.push(items[i][0]); left[i]--; rem--; }
+    }
+  }
+  return q;
+}
+// Кути з колонково-мажорної 4x4 (розклад YXZ: yaw->pitch->roll)
+function eulerFromMat(d){
+  const r02=d[8], r22=d[10], r12=d[9], r10=d[1], r11=d[5];
+  const cl=v=>Math.max(-1,Math.min(1,v));
+  return { yaw:Math.atan2(r02,r22), pitch:Math.asin(cl(-r12)), roll:Math.atan2(r10,r11) };
+}
+// Marching squares по сітці gw x gh, поріг t.
+// Повертає плоский масив сегментів [x0,y0,x1,y1,...] у координатах сітки.
+function marchingSquares(v,gw,gh,t){
+  const seg=[];
+  const ix=(a,b)=>{ const f=b-a; return f?Math.max(0,Math.min(1,(t-a)/f)):0.5; };
+  for(let y=0;y<gh-1;y++){
+    const row=y*gw, row2=(y+1)*gw;
+    for(let x=0;x<gw-1;x++){
+      const tl=v[row+x], tr=v[row+x+1], br=v[row2+x+1], bl=v[row2+x];
+      let c=0; if(tl>t)c|=8; if(tr>t)c|=4; if(br>t)c|=2; if(bl>t)c|=1;
+      if(c===0||c===15) continue;
+      const T=[x+ix(tl,tr),y], R=[x+1,y+ix(tr,br)], B=[x+ix(bl,br),y+1], L=[x,y+ix(tl,bl)];
+      const add=(p,q)=>{ seg.push(p[0],p[1],q[0],q[1]); };
+      switch(c){
+        case 1: add(L,B); break;   case 14: add(L,B); break;
+        case 2: add(B,R); break;   case 13: add(B,R); break;
+        case 3: add(L,R); break;   case 12: add(L,R); break;
+        case 4: add(T,R); break;   case 11: add(T,R); break;
+        case 6: add(T,B); break;   case 9:  add(T,B); break;
+        case 7: add(L,T); break;   case 8:  add(L,T); break;
+        case 5:{ const m=(tl+tr+br+bl)/4;
+          if(m>t){ add(T,R); add(L,B); } else { add(L,T); add(B,R); } break; }
+        case 10:{ const m=(tl+tr+br+bl)/4;
+          if(m>t){ add(L,T); add(B,R); } else { add(T,R); add(L,B); } break; }
+      }
+    }
+  }
+  return seg;
+}
+function uniqIdx(conns){
+  const s=new Set();
+  for(const c of conns){ s.add(c.start); s.add(c.end); }
+  return [...s];
+}
+//#endregion PURE
 
 // ── РОЗМІРИ ────────────────────────────────────────────
-let W=0, H=0, DPR=1;
+let W=0,H=0,DPR=1;
+const ink=document.createElement('canvas'), inkX=ink.getContext('2d');
+const pcv=document.createElement('canvas'), pcX=pcv.getContext('2d');
+let renderer=null, cam3=null;
 function resize(){
   DPR=Math.min(window.devicePixelRatio||1,2);
   W=window.innerWidth; H=window.innerHeight;
   cv.width=Math.round(W*DPR); cv.height=Math.round(H*DPR);
   cv.style.width=W+'px'; cv.style.height=H+'px';
+  ink.width=cv.width; ink.height=cv.height;      // чорнило скидається при resize
+  inkX.setTransform(DPR,0,0,DPR,0,0);
+  inkX.lineCap='round'; inkX.lineJoin='round';
+  pcv.width=Math.round(W*DPR/2); pcv.height=Math.round(H*DPR/2);
+  if(renderer){ renderer.setSize(W,H,false); cam3.aspect=W/H; cam3.updateProjectionMatrix(); }
 }
 addEventListener('resize',resize);
 addEventListener('orientationchange',()=>setTimeout(resize,300));
 resize();
 
 // ── СТАН ───────────────────────────────────────────────
-let FL=null, HL=null;                 // landmarker-и
-let TESS, REYE, LEYE, LIPS, HCONN;    // таблиці з'єднань
-let faceRes=null, handRes=null;
-let showFace=true, showHands=true;
+let FL=null, GR=null, PL=null, SG=null, OD=null;
+let TESS,REYE,LEYE,LIPS,RIRIS,LIRIS,HCONN,PCONN;
+let REYE_IDX,LEYE_IDX,RIRIS_IDX,LIRIS_IDX;
+let faceRes=null, gestRes=null, poseRes=null, objRes=null, segCache=null;
+const layer={ face:true, gest:true, pose:false, seg:false, obj:false };
+const dead={};
 let facing='user', mirrored=true, stream=null;
-let frameNo=0, running=false;
-let fpsV=0, lastT=performance.now(), lastFpsUpd=0;
+let frameNo=0, running=false, mode3d=false;
+let fpsV=0, lastT=performance.now(), lastFpsUpd=0, fpsTxt='--', fpsCol=ACC_D;
+let queue=[], queueKey='';
 
-// ── ЛОАДЕР / СТАТУСИ (суржиком, як положено) ──────────
+// HUD-згладжені величини
+const meters={ smile:0, brow:0, squint:0, jaw:0, blink:0 };
+let blinkClosed=false, blinkCount=0;
+let yawS=0,pitchS=0,rollS=0,distS=0,hasPose=false,hasDist=false;
+let gazeL=null, gazeR=null;
+
+// Чорнило (air-draw): стан на 2 руки
+const pinch=[{on:false,x:0,y:0},{on:false,x:0,y:0}];
+let holdName='', holdSince=0, lastFire=0;
+
+// Тости на канвасі
+const toasts=[];
+function toast(t,ms=1600){ toasts.push({t,until:performance.now()+ms}); if(toasts.length>3)toasts.shift(); }
+
+// ── ЛОАДЕР ─────────────────────────────────────────────
 let prog=0;
 function st(t,p){ ltxt.textContent=t; if(p>prog){ prog=p; fill.style.width=p+'%'; } }
+function bump(t,dp){ ltxt.textContent=t; prog=Math.min(100,prog+dp); fill.style.width=prog+'%'; }
 function fail(t){ ltxt.textContent=t; ltxt.classList.add('err'); fill.classList.add('err'); retry.hidden=false; }
 retry.addEventListener('click',()=>location.reload());
 
@@ -89,42 +193,71 @@ async function startCam(f){
     audio:false,
     video:{ facingMode:f, width:{ideal:640}, height:{ideal:480} }
   });
-  vid.srcObject=stream;
-  vid.muted=true;
+  vid.srcObject=stream; vid.muted=true;
   await vid.play();
 }
 function applyMirror(){
-  mirrored = (facing==='user');
-  vid.classList.toggle('mir', mirrored);
+  mirrored=(facing==='user');
+  vid.classList.toggle('mir',mirrored);
 }
 
-// ── НЕЙРОНКА ───────────────────────────────────────────
+// ── НЕЙРОНКИ: 5 штук, паралельно, з індивідуальним фолбеком ──
 async function initVision(){
   const mp=await import(`${CDN}/vision_bundle.mjs`);
-  const { FilesetResolver, FaceLandmarker, HandLandmarker }=mp;
+  const { FilesetResolver, FaceLandmarker, GestureRecognizer, PoseLandmarker,
+          ImageSegmenter, ObjectDetector }=mp;
   const fs=await FilesetResolver.forVisionTasks(`${CDN}/wasm`);
-  const mk=async (Cls, model, extra)=>{
-    const opts=d=>({ baseOptions:{ modelAssetPath:model, delegate:d }, runningMode:'VIDEO', ...extra });
-    try{ return await Cls.createFromOptions(fs, opts('GPU')); }
-    catch(e){ return await Cls.createFromOptions(fs, opts('CPU')); }
-  };
-  const [f,h]=await Promise.all([
-    mk(FaceLandmarker, `${MODELS}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-       { numFaces:1, outputFaceBlendshapes:false }),
-    mk(HandLandmarker, `${MODELS}/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
-       { numHands:2 })
-  ]);
-  FL=f; HL=h;
+  bump('WASM на місці. Тягну п\u02BCять моделей…',8);
+
   TESS=FaceLandmarker.FACE_LANDMARKS_TESSELATION;
   REYE=FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE;
   LEYE=FaceLandmarker.FACE_LANDMARKS_LEFT_EYE;
   LIPS=FaceLandmarker.FACE_LANDMARKS_LIPS;
-  HCONN=HandLandmarker.HAND_CONNECTIONS;
+  RIRIS=FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS;
+  LIRIS=FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS;
+  HCONN=GestureRecognizer.HAND_CONNECTIONS;
+  PCONN=PoseLandmarker.POSE_CONNECTIONS;
+  REYE_IDX=uniqIdx(REYE); LEYE_IDX=uniqIdx(LEYE);
+  RIRIS_IDX=uniqIdx(RIRIS); LIRIS_IDX=uniqIdx(LIRIS);
+
+  const mk=async (Cls,model,extra)=>{
+    const o=d=>({ baseOptions:{ modelAssetPath:model, delegate:d }, runningMode:'VIDEO', ...extra });
+    try{ return await Cls.createFromOptions(fs,o('GPU')); }
+    catch(e){ return await Cls.createFromOptions(fs,o('CPU')); }
+  };
+  const jobs=[
+    ['face', ()=>mk(FaceLandmarker,`${MODELS}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+        { numFaces:1, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:true }),
+      'Лице на місці', v=>FL=v],
+    ['gest', ()=>mk(GestureRecognizer,`${MODELS}/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`,
+        { numHands:2 }),
+      'Жести під\u02BCїхали', v=>GR=v],
+    ['pose', ()=>mk(PoseLandmarker,`${MODELS}/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
+        { numPoses:1 }),
+      'Поза в строю', v=>PL=v],
+    ['seg', ()=>mk(ImageSegmenter,`${MODELS}/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.task`,
+        { outputConfidenceMasks:true, outputCategoryMask:false }),
+      'Сегментація тут', v=>SG=v],
+    ['obj', ()=>mk(ObjectDetector,`${MODELS}/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.task`,
+        { scoreThreshold:0.5, maxResults:6 }),
+      'Об\u02BCєкти бачу', v=>OD=v]
+  ];
+  const res=await Promise.allSettled(jobs.map(async ([name,make,msg,set])=>{
+    const inst=await make(); set(inst); bump(msg,13); return name;
+  }));
+  res.forEach((r,i)=>{ if(r.status==='rejected') dead[jobs[i][0]]=true; });
 }
 
-// ── ЦИКЛ: чергування кадрів ────────────────────────────
-// Парні детекти — руки, непарні — обличчя. Якщо активний
-// лише один — він крутиться щокадру (менша латентність).
+// ── ПЛАНУВАЛЬНИК: зважений round-robin по активних ────
+const WEIGHTS={ face:2, gest:2, pose:1, seg:1, obj:1 };
+const HAS={ face:()=>FL, gest:()=>GR, pose:()=>PL, seg:()=>SG, obj:()=>OD };
+function rebuildQueue(){
+  const items=Object.keys(layer).filter(k=>layer[k]&&HAS[k]()).map(k=>[k,WEIGHTS[k]]);
+  const key=items.map(i=>i[0]).join(',');
+  if(key!==queueKey){ queueKey=key; queue=items.length?buildQueue(items):[]; }
+}
+
+// ── ЦИКЛ ───────────────────────────────────────────────
 const useRVFC='requestVideoFrameCallback' in HTMLVideoElement.prototype;
 function schedule(){
   if(!running) return;
@@ -135,59 +268,178 @@ function onFrame(){
   const now=performance.now();
   if(vid.readyState>=2 && vid.videoWidth){
     frameNo++;
-    const act=[];
-    if(showHands && HL) act.push(0);
-    if(showFace && FL) act.push(1);
-    if(act.length){
-      const w=act[frameNo % act.length];
-      try{
-        if(w===0) handRes=HL.detectForVideo(vid, now);
-        else      faceRes=FL.detectForVideo(vid, now);
-      }catch(_){}
+    rebuildQueue();
+    if(queue.length){
+      const w=queue[frameNo%queue.length];
+      try{ dispatch(w,now); }catch(_){}
     }
-    draw();
+    if(!mode3d) draw(now);
     const dt=(now-lastT)||1; lastT=now;
-    fpsV = fpsV ? fpsV*0.9 + (1000/dt)*0.1 : 1000/dt;
+    fpsV = fpsV ? fpsV*0.9+(1000/dt)*0.1 : 1000/dt;
     if(now-lastFpsUpd>300){
       const f=Math.round(fpsV);
-      fpsEl.textContent=f+' fps';
-      fpsEl.style.color = f<15 ? RED : f<24 ? AMBER : 'rgba(106,213,130,.55)';
+      fpsTxt=f+' fps';
+      fpsCol = f<15?RED : f<24?AMBER : ACC_D;
       lastFpsUpd=now;
     }
   }
   schedule();
 }
-
-// ── РЕНДЕР ─────────────────────────────────────────────
-// cover-мапінг: лендмарки нормовані до кадру відео, а відео
-// обрізане під екран — рахуємо зсув/масштаб і мапимо точки.
-function draw(){
-  ctx.setTransform(DPR,0,0,DPR,0,0);
-  ctx.clearRect(0,0,W,H);
-  const vw=vid.videoWidth, vh=vid.videoHeight;
-  if(!vw||!vh) return;
-  const s=Math.max(W/vw, H/vh), dw=vw*s, dh=vh*s;
-  const ox=(W-dw)/2, oy=(H-dh)/2;
-  if(mirrored){ ctx.translate(W,0); ctx.scale(-1,1); }
-  ctx.lineCap='round'; ctx.lineJoin='round';
-
-  if(showFace && faceRes){
-    for(const lm of faceRes.faceLandmarks){
-      strokeConn(lm, TESS, TESS_COL, 0.6, ox,oy,dw,dh);
-      strokeConn(lm, REYE, ACC, 1.5, ox,oy,dw,dh);
-      strokeConn(lm, LEYE, ACC, 1.5, ox,oy,dw,dh);
-      strokeConn(lm, LIPS, ACC, 1.5, ox,oy,dw,dh);
-    }
-  }
-  if(showHands && handRes){
-    for(const lm of handRes.landmarks){
-      strokeConn(lm, HCONN, ACC, 2, ox,oy,dw,dh);
-      dots(lm, AMBER, 3, ox,oy,dw,dh);
-    }
-  }
+function dispatch(w,now){
+  if(w==='face'){ faceRes=FL.detectForVideo(vid,now); postFace(now); }
+  else if(w==='gest'){ gestRes=GR.recognizeForVideo(vid,now); postGest(now); }
+  else if(w==='pose'){ poseRes=PL.detectForVideo(vid,now); }
+  else if(w==='seg'){ const r=SG.segmentForVideo(vid,now); postSeg(r); }
+  else if(w==='obj'){ objRes=OD.detectForVideo(vid,now); }
 }
-// Один beginPath на групу — один stroke, нуль тіней.
-function strokeConn(lm, conns, color, w, ox,oy,dw,dh){
+
+// ── ПОСТ-ОБРОБКА: ЛИЦЕ (міміка, поза, ірис) ───────────
+const ema=(o,v,k=0.3)=>o+(v-o)*k;
+function bsMap(cats){ const m={}; for(const c of cats) m[c.categoryName]=c.score; return m; }
+function postFace(){
+  const lms=faceRes&&faceRes.faceLandmarks;
+  if(!lms||!lms.length){ hasPose=false; hasDist=false; gazeL=gazeR=null; return; }
+  // Блендшейпи -> 5 метрів
+  const bsl=faceRes.faceBlendshapes;
+  if(bsl&&bsl.length){
+    const b=bsMap(bsl[0].categories);
+    const g=n=>b[n]||0;
+    meters.smile =ema(meters.smile ,(g('mouthSmileLeft')+g('mouthSmileRight'))/2);
+    meters.brow  =ema(meters.brow  ,Math.max(g('browInnerUp'),(g('browOuterUpLeft')+g('browOuterUpRight'))/2));
+    meters.squint=ema(meters.squint,(g('eyeSquintLeft')+g('eyeSquintRight'))/2);
+    meters.jaw   =ema(meters.jaw   ,g('jawOpen'));
+    const bl=(g('eyeBlinkLeft')+g('eyeBlinkRight'))/2;
+    meters.blink =ema(meters.blink ,bl,0.5);
+    if(!blinkClosed && bl>0.55){ blinkClosed=true; blinkCount++; }
+    else if(blinkClosed && bl<0.35) blinkClosed=false;
+  }
+  // Матриця -> компас
+  const mats=faceRes.facialTransformationMatrixes;
+  if(mats&&mats.length&&mats[0].data){
+    const e=eulerFromMat(mats[0].data);
+    yawS=ema(yawS,e.yaw); pitchS=ema(pitchS,e.pitch); rollS=ema(rollS,e.roll);
+    hasPose=true;
+  } else hasPose=false;
+  // Ірис -> дистанція + погляд
+  const lm=lms[0], vw=vid.videoWidth, vh=vid.videoHeight;
+  const eye=(eyeIdx,irisIdx)=>{
+    let minx=1,maxx=0,miny=1,maxy=0;
+    for(const i of eyeIdx){ const p=lm[i];
+      if(p.x<minx)minx=p.x; if(p.x>maxx)maxx=p.x;
+      if(p.y<miny)miny=p.y; if(p.y>maxy)maxy=p.y; }
+    let cx=0,cy=0;
+    for(const i of irisIdx){ cx+=lm[i].x; cy+=lm[i].y; }
+    cx/=irisIdx.length; cy/=irisIdx.length;
+    let d=0;
+    for(let a=0;a<irisIdx.length;a++) for(let b2=a+1;b2<irisIdx.length;b2++){
+      const p=lm[irisIdx[a]], q=lm[irisIdx[b2]];
+      const dx=(p.x-q.x)*vw, dy=(p.y-q.y)*vh;
+      const dd=Math.hypot(dx,dy); if(dd>d)d=dd;
+    }
+    return { ex:(minx+maxx)/2, ey:(miny+maxy)/2, cx, cy, diam:d };
+  };
+  const R=eye(REYE_IDX,RIRIS_IDX), L=eye(LEYE_IDX,LIRIS_IDX);
+  const diam=(R.diam+L.diam)/2;
+  if(diam>2){
+    const fpx=0.5*vw/Math.tan(Math.PI/6);        // ~60° HFOV, оцінка
+    distS=ema(distS,fpx*1.17/diam,0.2); hasDist=true;
+  } else hasDist=false;
+  gazeR={ cx:R.cx, cy:R.cy, dx:R.cx-R.ex, dy:R.cy-R.ey };
+  gazeL={ cx:L.cx, cy:L.cy, dx:L.cx-L.ex, dy:L.cy-L.ey };
+}
+
+// ── ПОСТ-ОБРОБКА: ЖЕСТИ (пінч-пензель, hold-дії) ──────
+function postGest(now){
+  const hands=gestRes&&gestRes.landmarks?gestRes.landmarks:[];
+  if(!mode3d && vid.videoWidth){
+    const { dw,dh,ox,oy }=coverMap(vid.videoWidth,vid.videoHeight,W,H);
+    for(let h=0;h<2;h++){
+      const s=pinch[h];
+      if(h>=hands.length){ s.on=false; continue; }
+      const lm=hands[h];
+      const scale=Math.hypot(lm[0].x-lm[9].x, lm[0].y-lm[9].y)||1e-6;
+      const r=Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y)/scale;
+      const want = s.on ? r<0.45 : r<0.35;       // гістерезис
+      let px=ox+((lm[4].x+lm[8].x)/2)*dw;
+      const py=oy+((lm[4].y+lm[8].y)/2)*dh;
+      if(mirrored) px=W-px;
+      if(want){
+        if(!s.on){ s.on=true; s.x=px; s.y=py; }
+        else{
+          if(h===0){                              // рука 0 — пензель
+            inkX.globalCompositeOperation='source-over';
+            inkX.strokeStyle='rgba(255,193,60,.25)'; inkX.lineWidth=10;
+            inkX.beginPath(); inkX.moveTo(s.x,s.y); inkX.lineTo(px,py); inkX.stroke();
+            inkX.strokeStyle=AMBER; inkX.lineWidth=3.5;
+            inkX.beginPath(); inkX.moveTo(s.x,s.y); inkX.lineTo(px,py); inkX.stroke();
+          }else{                                  // рука 1 — ластик
+            inkX.globalCompositeOperation='destination-out';
+            inkX.beginPath(); inkX.arc(px,py,26,0,6.2832); inkX.fill();
+            inkX.globalCompositeOperation='source-over';
+          }
+          s.x=px; s.y=py;
+        }
+      } else s.on=false;
+    }
+  }
+  // Hold-жести: долоня 1.2с = стерти, victory 1.2с = 3D
+  let top='';
+  const gs=gestRes&&gestRes.gestures?gestRes.gestures:[];
+  for(const g of gs){ if(g.length&&g[0].score>0.6){ top=g[0].categoryName; break; } }
+  if(top==='Open_Palm'||top==='Victory'){
+    if(holdName!==top){ holdName=top; holdSince=now; }
+    else if(now-holdSince>1200 && now-lastFire>1800){
+      lastFire=now;
+      if(top==='Open_Palm'){ clearInk(); toast('Стерто. Як не було.'); }
+      else toggle3D();
+    }
+  } else holdName='';
+}
+function clearInk(){
+  inkX.save(); inkX.setTransform(1,0,0,1,0,0);
+  inkX.clearRect(0,0,ink.width,ink.height);
+  inkX.restore();
+}
+
+// ── ПОСТ-ОБРОБКА: СЕГМЕНТАЦІЯ ─────────────────────────
+const mcv=document.createElement('canvas'), mcX=mcv.getContext('2d');
+function postSeg(res){
+  try{
+    const masks=res&&res.confidenceMasks;
+    if(!masks||!masks.length){ segCache=null; return; }
+    const m=masks[masks.length-1];               // особа — останній клас
+    const mw=m.width, mh=m.height;
+    const arr=m.getAsFloat32Array();
+    const stride=Math.max(1,Math.ceil(mw/192));
+    const gw=Math.floor((mw-1)/stride)+1, gh=Math.floor((mh-1)/stride)+1;
+    const grid=new Float32Array(gw*gh);
+    for(let y=0;y<gh;y++){ const sy=y*stride*mw;
+      for(let x=0;x<gw;x++) grid[y*gw+x]=arr[sy+x*stride]; }
+    // Альфа-маска -> mcv
+    if(mcv.width!==gw||mcv.height!==gh){ mcv.width=gw; mcv.height=gh; }
+    const img=mcX.createImageData(gw,gh), px=img.data;
+    for(let i=0;i<grid.length;i++){
+      const a=Math.max(0,Math.min(1,grid[i]));
+      const o=i*4; px[o]=255; px[o+1]=255; px[o+2]=255; px[o+3]=(a*255)|0;
+    }
+    mcX.putImageData(img,0,0);
+    segCache={ segs:marchingSquares(grid,gw,gh,0.5), gw, gh };
+    for(const mm of masks){ try{ mm.close(); }catch(_){} }
+  }catch(_){ segCache=null; }
+}
+
+// ── СЛОВНИК COCO -> УКР ────────────────────────────────
+const UA={"person":"ЛЮДИНА","cell phone":"ТЕЛЕФОН","bottle":"ПЛЯШКА","cup":"ЧАШКА",
+"laptop":"НОУТБУК","keyboard":"КЛАВІАТУРА","mouse":"МИША","tv":"ЕКРАН","book":"КНИГА",
+"chair":"СТІЛЕЦЬ","couch":"ДИВАН","bed":"ЛІЖКО","dining table":"СТІЛ","remote":"ПУЛЬТ",
+"clock":"ГОДИННИК","backpack":"РЮКЗАК","handbag":"СУМКА","cat":"КІТ","dog":"ПЕС",
+"bird":"ПТАХ","car":"АВТО","truck":"ВАНТАЖІВКА","bicycle":"ВЕЛИК","motorcycle":"МОТО",
+"scissors":"НОЖИЦІ","knife":"НІЖ","spoon":"ЛОЖКА","fork":"ВИДЕЛКА","banana":"БАНАН",
+"apple":"ЯБЛУКО","potted plant":"ВАЗОН","umbrella":"ПАРАСОЛЯ","wine glass":"КЕЛИХ",
+"teddy bear":"ВЕДМЕДИК","toothbrush":"ЩІТКА","vase":"ВАЗА"};
+
+// ── 2D РЕНДЕР ──────────────────────────────────────────
+function strokeConn(lm,conns,color,w,ox,oy,dw,dh){
   ctx.strokeStyle=color; ctx.lineWidth=w;
   ctx.beginPath();
   for(let i=0;i<conns.length;i++){
@@ -197,7 +449,7 @@ function strokeConn(lm, conns, color, w, ox,oy,dw,dh){
   }
   ctx.stroke();
 }
-function dots(lm, color, r, ox,oy,dw,dh){
+function dots(lm,color,r,ox,oy,dw,dh){
   ctx.fillStyle=color;
   ctx.beginPath();
   for(const p of lm){
@@ -206,61 +458,396 @@ function dots(lm, color, r, ox,oy,dw,dh){
   }
   ctx.fill();
 }
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.clearRect(0,0,W,H);
+  const vw=vid.videoWidth, vh=vid.videoHeight;
+  if(!vw||!vh) return;
+  const { s,dw,dh,ox,oy }=coverMap(vw,vh,W,H);
 
-// ── КНОПКИ ─────────────────────────────────────────────
-const bH=$('b-hand'), bF=$('b-face'), bFl=$('b-flip');
-bH.addEventListener('click',()=>{
-  showHands=!showHands;
-  if(!showHands) handRes=null;
-  bH.classList.toggle('off',!showHands);
-});
-bF.addEventListener('click',()=>{
-  showFace=!showFace;
-  if(!showFace) faceRes=null;
-  bF.classList.toggle('off',!showFace);
-});
-let flipping=false;
-bFl.addEventListener('click',async ()=>{
-  if(flipping) return;
-  flipping=true; bFl.classList.add('off');
+  ctx.save();
+  if(mirrored){ ctx.translate(W,0); ctx.scale(-1,1); }
+  ctx.lineCap='round'; ctx.lineJoin='round';
+
+  // 1. Сегментація: глушимо фон, світлимо людину, неон-контур
+  if(layer.seg && segCache){
+    ctx.fillStyle='rgba(0,18,11,0.45)';
+    ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='destination-out';
+    ctx.drawImage(mcv,ox,oy,dw,dh);              // виріз по масці
+    ctx.globalCompositeOperation='source-over';
+    // людина: сире відео (без CSS-фільтра) крізь маску, пригашене до ~55%
+    pcX.setTransform(1,0,0,1,0,0);
+    pcX.clearRect(0,0,pcv.width,pcv.height);
+    const k=pcv.width/W;
+    pcX.drawImage(vid,ox*k,oy*k,dw*k,dh*k);
+    pcX.globalCompositeOperation='destination-in';
+    pcX.drawImage(mcv,ox*k,oy*k,dw*k,dh*k);
+    pcX.globalCompositeOperation='source-atop';
+    pcX.fillStyle='rgba(0,4,2,0.45)';
+    pcX.fillRect(0,0,pcv.width,pcv.height);
+    pcX.globalCompositeOperation='source-over';
+    ctx.drawImage(pcv,0,0,W,H);
+    // контур
+    const sc=segCache, kx=dw/(sc.gw-1), ky=dh/(sc.gh-1);
+    ctx.strokeStyle=ACC; ctx.lineWidth=2;
+    ctx.beginPath();
+    for(let i=0;i<sc.segs.length;i+=4){
+      ctx.moveTo(ox+sc.segs[i]*kx,   oy+sc.segs[i+1]*ky);
+      ctx.lineTo(ox+sc.segs[i+2]*kx, oy+sc.segs[i+3]*ky);
+    }
+    ctx.stroke();
+  }
+
+  // 2. Поза
+  if(layer.pose && poseRes && poseRes.landmarks){
+    for(const lm of poseRes.landmarks){
+      strokeConn(lm,PCONN,'rgba(106,213,130,.5)',2,ox,oy,dw,dh);
+      dots(lm,'rgba(106,213,130,.7)',2.5,ox,oy,dw,dh);
+    }
+  }
+
+  // 3. Лице
+  if(layer.face && faceRes && faceRes.faceLandmarks){
+    for(const lm of faceRes.faceLandmarks){
+      strokeConn(lm,TESS,TESS_COL,0.6,ox,oy,dw,dh);
+      strokeConn(lm,REYE,ACC,1.5,ox,oy,dw,dh);
+      strokeConn(lm,LEYE,ACC,1.5,ox,oy,dw,dh);
+      strokeConn(lm,LIPS,ACC,1.5,ox,oy,dw,dh);
+    }
+  }
+
+  // 4. Руки (з GestureRecognizer)
+  if(layer.gest && gestRes && gestRes.landmarks){
+    for(const lm of gestRes.landmarks){
+      strokeConn(lm,HCONN,ACC,2,ox,oy,dw,dh);
+      dots(lm,AMBER,3,ox,oy,dw,dh);
+    }
+  }
+  ctx.restore();
+
+  // ── далі екранний простір (без дзеркала) ──
+  ctx.drawImage(ink,0,0,W,H);                    // air-draw чорнило
+
+  // 5. Об'єкти: рамки-кутники + укр лейбли
+  if(layer.obj && objRes && objRes.detections){
+    ctx.lineWidth=1.5; ctx.font=`9px ${FONT}`; ctx.textAlign='left';
+    for(const d of objRes.detections){
+      const bb=d.boundingBox; if(!bb) continue;
+      const c0=d.categories&&d.categories[0]; if(!c0) continue;
+      let x=ox+bb.originX*s;
+      const y=oy+bb.originY*s, w=bb.width*s, h=bb.height*s;
+      if(mirrored) x=W-(x+w);
+      const cl=Math.min(14,w*0.3,h*0.3);
+      ctx.strokeStyle=ACC;
+      ctx.beginPath();
+      [[x,y,1,1],[x+w,y,-1,1],[x,y+h,1,-1],[x+w,y+h,-1,-1]].forEach(([qx,qy,sx,sy])=>{
+        ctx.moveTo(qx+sx*cl,qy); ctx.lineTo(qx,qy); ctx.lineTo(qx,qy+sy*cl);
+      });
+      ctx.stroke();
+      const name=UA[c0.categoryName]||(c0.categoryName||'').toUpperCase();
+      const label=`${name} ${Math.round(c0.score*100)}`;
+      const tw=ctx.measureText(label).width;
+      ctx.fillStyle='rgba(13,59,37,.85)';
+      ctx.fillRect(x,y-15,tw+10,13);
+      ctx.fillStyle=AMBER;
+      ctx.fillText(label,x+5,y-5);
+    }
+  }
+
+  // 6. Погляд з очей
+  if(layer.face && gazeL && gazeR){
+    ctx.strokeStyle='rgba(106,213,130,.85)'; ctx.lineWidth=1.5;
+    for(const g of [gazeL,gazeR]){
+      let x=ox+g.cx*dw; const y=oy+g.cy*dh;
+      let dx=g.dx*dw; const dy=g.dy*dh;
+      if(mirrored){ x=W-x; dx=-dx; }
+      const m=Math.hypot(dx,dy)||1e-6;
+      ctx.beginPath(); ctx.moveTo(x,y);
+      ctx.lineTo(x+dx/m*30, y+dy/m*30);
+      ctx.stroke();
+    }
+  }
+
+  // 7. HUD: бари міміки (зліва)
+  if(layer.face && faceRes && faceRes.faceLandmarks && faceRes.faceLandmarks.length){
+    const rows=[['УСМІХ',meters.smile],['БРОВИ',meters.brow],['ПРИЖМ',meters.squint],
+                ['РОТ',meters.jaw],['КЛІП',meters.blink]];
+    let y=56;
+    ctx.font=`7px ${FONT}`; ctx.textAlign='left';
+    for(const [lb,v] of rows){
+      ctx.fillStyle=ACC_D; ctx.fillText(lb,12,y-3);
+      ctx.fillStyle='rgba(106,213,130,.15)'; ctx.fillRect(12,y,88,4);
+      ctx.fillStyle=v>0.6?AMBER:ACC; ctx.fillRect(12,y,88*Math.min(1,v),4);
+      y+=24;
+    }
+    ctx.fillStyle=ACC_D; ctx.fillText(`КЛІПАНЬ: ${blinkCount}`,12,y+2);
+
+    // 8. Компас голови (справа)
+    if(hasPose){
+      const cx=W-46, cy=64, r=25;
+      ctx.strokeStyle='rgba(106,213,130,.3)'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.arc(cx,cy,r,0,6.2832); ctx.stroke();
+      for(let a=0;a<12;a++){
+        const t=a*Math.PI/6;
+        ctx.beginPath();
+        ctx.moveTo(cx+Math.cos(t)*(r-3),cy+Math.sin(t)*(r-3));
+        ctx.lineTo(cx+Math.cos(t)*r,cy+Math.sin(t)*r);
+        ctx.stroke();
+      }
+      ctx.save();                                 // штучний горизонт: roll+pitch
+      ctx.translate(cx,cy); ctx.rotate(rollS);
+      const po=Math.max(-18,Math.min(18,pitchS*40));
+      ctx.strokeStyle=ACC; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(-r+6,po); ctx.lineTo(r-6,po); ctx.stroke();
+      ctx.restore();
+      ctx.strokeStyle=AMBER; ctx.lineWidth=1.5;   // yaw-стрілка
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+Math.sin(yawS)*(r-6), cy-Math.cos(yawS)*(r-6));
+      ctx.stroke();
+      const dg=v=>{ const d=Math.round(v*180/Math.PI); return (d>=0?'+':'')+d; };
+      ctx.font=`6px ${FONT}`; ctx.textAlign='right'; ctx.fillStyle=ACC_D;
+      ctx.fillText('ПОЗА ГОЛОВИ',W-12,cy-r-8);
+      ctx.font=`7px ${FONT}`;
+      ctx.fillText(`Y${dg(yawS)} P${dg(pitchS)} R${dg(rollS)}`,W-12,cy+r+12);
+      if(hasDist){
+        ctx.fillStyle=AMBER; ctx.font=`9px ${FONT}`;
+        ctx.fillText(`ДИСТ ~${Math.round(distS)} СМ`,W-12,cy+r+27);
+      }
+    }
+  }
+
+  // 9. Тости
+  const tn=performance.now();
+  for(let i=toasts.length-1;i>=0;i--) if(toasts[i].until<tn) toasts.splice(i,1);
+  if(toasts.length){
+    ctx.font=`10px ${FONT}`; ctx.textAlign='center';
+    let ty=H-132;
+    for(const t of toasts){
+      const tw=ctx.measureText(t.t).width+24;
+      ctx.fillStyle='rgba(13,59,37,.92)';
+      ctx.fillRect(W/2-tw/2,ty-17,tw,24);
+      ctx.strokeStyle='rgba(106,213,130,.35)'; ctx.lineWidth=1;
+      ctx.strokeRect(W/2-tw/2,ty-17,tw,24);
+      ctx.fillStyle=ACC; ctx.fillText(t.t,W/2,ty);
+      ty-=30;
+    }
+  }
+
+  // 10. FPS у куті канваса
+  ctx.font=`10px ${FONT}`; ctx.textAlign='left';
+  ctx.fillStyle='rgba(0,18,11,.55)';
+  ctx.fillRect(8,8,52,14);
+  ctx.fillStyle=fpsCol;
+  ctx.fillText(fpsTxt,12,19);
+}
+
+// ── 3D РЕЖИМ ───────────────────────────────────────────
+let THREE=null, scene=null, geo3={}, orbit={ th:0, ph:1.15, r:1.9 };
+async function init3D(){
+  THREE=await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+  renderer=new THREE.WebGLRenderer({ canvas:glc, antialias:false });
+  renderer.setPixelRatio(DPR);
+  renderer.setSize(W,H,false);
+  scene=new THREE.Scene();
+  scene.background=new THREE.Color(0x00120b);
+  cam3=new THREE.PerspectiveCamera(50,W/H,0.01,50);
+  scene.add(new THREE.GridHelper(3,12,0x0d3b25,0x0d3b25).translateY(-0.9));
+  const mkLines=(n,color,op)=>{
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));
+    const o=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color,transparent:true,opacity:op}));
+    o.frustumCulled=false; scene.add(o); return o;
+  };
+  const mkPts=(n,color,size,op)=>{
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));
+    const o=new THREE.Points(g,new THREE.PointsMaterial({color,size,transparent:true,opacity:op}));
+    o.frustumCulled=false; scene.add(o); return o;
+  };
+  geo3.faceL=mkLines(TESS.length*2,0x6AD582,0.3);
+  geo3.faceP=mkPts(478,0x6AD582,0.013,0.9);
+  geo3.handL=mkLines(HCONN.length*2*2,0xFFC13C,0.9);
+  geo3.handP=mkPts(42,0xFFC13C,0.02,0.95);
+  geo3.poseL=mkLines(PCONN.length*2,0x6AD582,0.45);
+  geo3.poseP=mkPts(33,0x6AD582,0.022,0.6);
+  // власний touch-orbit: драг = орбіта, щипок = зум
+  const ptr=new Map();
+  let pd=0;
+  glc.addEventListener('pointerdown',e=>{ ptr.set(e.pointerId,[e.clientX,e.clientY]); glc.setPointerCapture(e.pointerId); });
+  glc.addEventListener('pointermove',e=>{
+    if(!ptr.has(e.pointerId)) return;
+    const prev=ptr.get(e.pointerId);
+    ptr.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptr.size===1){
+      orbit.th-=(e.clientX-prev[0])*0.006;
+      orbit.ph=Math.max(0.15,Math.min(3.0,orbit.ph-(e.clientY-prev[1])*0.006));
+    }else if(ptr.size===2){
+      const ps=[...ptr.values()];
+      const nd=Math.hypot(ps[0][0]-ps[1][0],ps[0][1]-ps[1][1]);
+      if(pd>0) orbit.r=Math.max(0.6,Math.min(4.5,orbit.r*pd/nd));
+      pd=nd;
+    }
+  });
+  const up=e=>{ ptr.delete(e.pointerId); if(ptr.size<2) pd=0; };
+  glc.addEventListener('pointerup',up);
+  glc.addEventListener('pointercancel',up);
+}
+function map3(p,a,out,o){
+  out[o]  =(mirrored?(0.5-p.x):(p.x-0.5))*a*1.4;
+  out[o+1]=(0.5-p.y)*1.4;
+  out[o+2]=-(p.z||0)*a*1.4;
+}
+function fillLines(obj,lm,conns,a){
+  const arr=obj.geometry.attributes.position.array;
+  let o=0;
+  for(const c of conns){ map3(lm[c.start],a,arr,o); o+=3; map3(lm[c.end],a,arr,o); o+=3; }
+  obj.geometry.setDrawRange(0,o/3);
+  obj.geometry.attributes.position.needsUpdate=true;
+  obj.visible=true;
+}
+function fillPts(obj,lms,a){
+  const arr=obj.geometry.attributes.position.array;
+  let o=0;
+  for(const lm of lms) for(const p of lm){ map3(p,a,arr,o); o+=3; }
+  obj.geometry.setDrawRange(0,o/3);
+  obj.geometry.attributes.position.needsUpdate=true;
+  obj.visible=o>0;
+}
+function upd3(){
+  const a=(vid.videoWidth||640)/(vid.videoHeight||480);
+  const fl=layer.face&&faceRes&&faceRes.faceLandmarks&&faceRes.faceLandmarks.length?faceRes.faceLandmarks:null;
+  if(fl){ fillLines(geo3.faceL,fl[0],TESS,a); fillPts(geo3.faceP,[fl[0]],a); }
+  else geo3.faceL.visible=geo3.faceP.visible=false;
+  const hl=layer.gest&&gestRes&&gestRes.landmarks&&gestRes.landmarks.length?gestRes.landmarks:null;
+  if(hl){
+    const arr=geo3.handL.geometry.attributes.position.array;
+    let o=0;
+    for(const lm of hl) for(const c of HCONN){ map3(lm[c.start],a,arr,o); o+=3; map3(lm[c.end],a,arr,o); o+=3; }
+    geo3.handL.geometry.setDrawRange(0,o/3);
+    geo3.handL.geometry.attributes.position.needsUpdate=true;
+    geo3.handL.visible=true;
+    fillPts(geo3.handP,hl,a);
+  } else geo3.handL.visible=geo3.handP.visible=false;
+  const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
+  if(pl){ fillLines(geo3.poseL,pl[0],PCONN,a); fillPts(geo3.poseP,[pl[0]],a); }
+  else geo3.poseL.visible=geo3.poseP.visible=false;
+  cam3.position.set(
+    orbit.r*Math.sin(orbit.ph)*Math.sin(orbit.th),
+    orbit.r*Math.cos(orbit.ph),
+    orbit.r*Math.sin(orbit.ph)*Math.cos(orbit.th));
+  cam3.lookAt(0,0,0);
+}
+function loop3(){
+  if(!mode3d) return;
+  upd3();
+  renderer.render(scene,cam3);
+  requestAnimationFrame(loop3);
+}
+let threeLoading=false;
+async function toggle3D(){
+  if(mode3d){
+    mode3d=false;
+    document.body.classList.remove('m3');
+    $('b-3d').classList.remove('on');
+    toast('Назад у 2D.');
+    return;
+  }
+  if(threeLoading) return;
+  if(!THREE){
+    threeLoading=true;
+    try{ await init3D(); }
+    catch(_){ threeLoading=false; toast('Three.js не доїхав. Мережа, ти шо.'); return; }
+    threeLoading=false;
+  }
+  mode3d=true;
+  document.body.classList.add('m3');
+  $('b-3d').classList.add('on');
+  toast('3D. Крутиш пальцем, щипок — зум.');
+  loop3();
+}
+
+// ── КНОПКИ І ЧІПИ ──────────────────────────────────────
+$('b-flip').addEventListener('click',async ()=>{
+  const b=$('b-flip');
+  if(b.dataset.busy) return;
+  b.dataset.busy='1'; b.classList.add('off');
   const prev=facing;
   facing = facing==='user' ? 'environment' : 'user';
-  faceRes=null; handRes=null;
+  faceRes=gestRes=poseRes=objRes=null; segCache=null;
+  gazeL=gazeR=null; hasPose=hasDist=false;
+  clearInk();
   try{ await startCam(facing); }
   catch(_){ facing=prev; try{ await startCam(facing); }catch(_2){} }
   applyMirror();
-  flipping=false; bFl.classList.remove('off');
+  delete b.dataset.busy; b.classList.remove('off');
 });
+$('b-layers').addEventListener('click',()=>panel.classList.toggle('open'));
+$('b-3d').addEventListener('click',toggle3D);
+const CHIP_RES={
+  face:()=>{ faceRes=null; gazeL=gazeR=null; hasPose=hasDist=false; },
+  gest:()=>{ gestRes=null; },
+  pose:()=>{ poseRes=null; },
+  seg:()=>{ segCache=null; },
+  obj:()=>{ objRes=null; }
+};
+for(const k of ['face','gest','pose','seg','obj']){
+  const el=$('c-'+k);
+  el.classList.toggle('off',!layer[k]);
+  el.addEventListener('click',()=>{
+    if(dead[k]){ toast('Ця модель не завантажилась.'); return; }
+    layer[k]=!layer[k];
+    if(!layer[k]) CHIP_RES[k]();
+    el.classList.toggle('off',!layer[k]);
+  });
+}
+$('c-clear').addEventListener('click',()=>{ clearInk(); toast('Стерто. Як не було.'); });
 
-// Мобільні жести — в топку
 document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
 // ── BOOT ───────────────────────────────────────────────
 (async ()=>{
   try{
-    st('Тягну нейронку з CDN…',12);
+    st('Тягну нейронки з CDN…',5);
     const vp=initVision();
-    vp.catch(()=>{});                      // ловимо нижче, без unhandled
-    st('Дай добро на камеру, ша…',20);
+    vp.catch(()=>{});
+    st('Дай добро на камеру, ша…',12);
     try{ await startCam(facing); }
     catch(e){ throw { kind:'cam', e }; }
     applyMirror();
-    st('Камера є. Мізки ще їдуть…',55);
+    st('Камера є. Мізки ще їдуть…',18);
     try{ await vp; }
     catch(e){ throw { kind:'cdn', e }; }
-    st('Прогріваю делегата…',92);
+    if(!FL&&!GR) throw { kind:'cdn', e:new Error('core') };
+    st('Прогріваю делегатів…',95);
     try{
-      const t=performance.now();
-      if(vid.readyState>=2){ FL.detectForVideo(vid,t); HL.detectForVideo(vid,t+0.1); }
+      let t=performance.now();
+      if(vid.readyState>=2){
+        for(const m of [FL,GR,PL,SG,OD]){
+          if(!m) continue;
+          t+=0.2;
+          if(m===GR) m.recognizeForVideo(vid,t);
+          else if(m===SG){
+            const r=m.segmentForVideo(vid,t);
+            if(r&&r.confidenceMasks) for(const mm of r.confidenceMasks){ try{ mm.close(); }catch(_){} }
+          }
+          else m.detectForVideo(vid,t);
+        }
+      }
     }catch(_){}
     st('Всьо. Погнали!',100);
+    const miss=Object.keys(dead);
+    for(const k of miss){ const el=$('c-'+k); if(el) el.classList.add('dead'); layer[k]=false; }
     running=true; schedule();
     setTimeout(()=>{
       loader.classList.add('out');
       setTimeout(()=>loader.remove(),600);
+      if(miss.length){
+        const NM={face:'ЛИЦЕ',gest:'ЖЕСТИ',pose:'ПОЗА',seg:'СЕГМ',obj:'ОБ\u02BCЄКТИ'};
+        toast('Не доїхали: '+miss.map(k=>NM[k]).join(', '),2600);
+      }
     },350);
-    // Wake lock — щоб екран не засинав посеред скану
     try{
       await navigator.wakeLock?.request('screen');
       document.addEventListener('visibilitychange',()=>{
@@ -271,9 +858,9 @@ document.addEventListener('contextmenu',e=>e.preventDefault());
   }catch(err){
     const e=err.e||err;
     if(err.kind==='cam'){
-      if(e && (e.name==='NotAllowedError'||e.name==='SecurityError'))
+      if(e&&(e.name==='NotAllowedError'||e.name==='SecurityError'))
         fail('Камеру зарубали, брат. Дозволь доступ у налаштуваннях браузера і тисни «ЩЕ РАЗ».');
-      else if(e && e.name==='NotFoundError')
+      else if(e&&e.name==='NotFoundError')
         fail('Камери не знайшов. Це шо за пристрій такий?');
       else
         fail('Камера впала: '+((e&&e.name)||'хз чого')+'. Спробуй «ЩЕ РАЗ».');
