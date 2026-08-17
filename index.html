@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#00311E">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Handjet:wght@400;500;600&display=swap" rel="stylesheet">
-<title>AXIOM</title>
+<title>myDASH</title>
 <style>
 :root{--acc:#6AD582;--deep:#00311E;--panel:#0d3b25;--amber:#FFC13C;--red:#DF2F2E;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -103,21 +103,31 @@ body{font-family:'Handjet',ui-monospace,'SF Mono',Menlo,monospace;font-weight:50
 #flash.go{animation:crtflash .28s ease-out;}
 @keyframes crtflash{0%{opacity:.9;transform:scaleY(.004);}45%{opacity:.55;transform:scaleY(1);}100%{opacity:0;transform:scaleY(1);}}
 @media(prefers-reduced-motion:reduce){#noise,#flick,#roll{display:none;}}
+/* ── DOCK v5 ── */
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(6,32,20,.96);border-top:1px solid rgba(106,213,130,.35);display:flex;flex-direction:column;padding:0 8px calc(8px + env(safe-area-inset-bottom));}
+#grip{width:44px;height:4px;border-radius:2px;background:rgba(106,213,130,.4);margin:6px auto;flex:none;display:none;touch-action:none;}
+#dock.open #grip{display:block;}
+#dsec{overflow:hidden;max-height:0;transition:max-height .3s ease;}
+#dock.open #dsec{max-height:56vh;}
+.dpane{display:none;}
+.dscroll{overflow-y:auto;touch-action:pan-y;max-height:52vh;padding:2px 8px 10px;}
+#lgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 8px 14px;}
+#lgrid .chip{height:40px;}
+#erow{display:flex;gap:10px;justify-content:center;padding:12px 8px 16px;}
+#erow .chip{min-width:86px;height:42px;}
+#drow{display:flex;align-items:center;justify-content:center;gap:6px;padding-top:8px;}
+#modetab{position:static;transform:none;background:rgba(0,49,30,.9);border:1px solid rgba(106,213,130,.35);border-radius:9px;overflow:hidden;display:flex;flex:none;}
+.mt{width:58px;height:50px;font-size:15px;}
+#drow .btn{width:50px;height:50px;gap:2px;}
+#drow .btn svg{width:18px;height:18px;}
+#drow .btn span{font-size:11px;letter-spacing:0;}
+#toastbox{bottom:calc(86px + env(safe-area-inset-bottom));}
 </style>
 </head>
 <body>
 <video id="vid" playsinline muted autoplay></video>
 <canvas id="cv"></canvas>
 <canvas id="gl"></canvas>
-<div id="modetab">
-  <button class="mt on" id="m-efir">ЕФІР</button>
-  <button class="mt" id="m-3d">3D</button>
-</div>
-<div id="expop">
-  <button class="chip" id="e-ply">PLY</button>
-  <button class="chip" id="e-obj">OBJ</button>
-  <button class="chip" id="e-glb">GLB</button>
-</div>
 <div id="joy"><div id="knob"></div></div>
 <div id="toastbox"></div>
 <div id="crt"></div>
@@ -125,26 +135,10 @@ body{font-family:'Handjet',ui-monospace,'SF Mono',Menlo,monospace;font-weight:50
 <div id="flick"></div>
 <div id="roll"></div>
 <div id="flash"></div>
-<div id="panel">
-  <button class="chip" id="c-face">ЛИЦЕ</button>
-  <button class="chip" id="c-gest">ЖЕСТИ</button>
-  <button class="chip" id="c-pose">ПОЗА</button>
-  <button class="chip" id="c-seg">СЕГМ</button>
-  <button class="chip" id="c-obj">ОБ'ЄКТИ</button>
-  <button class="chip warn" id="c-clear">СТЕРТИ</button>
-</div>
-<div id="ctrl">
-  <button class="btn oe" id="b-flip" aria-label="Змінити камеру"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 13c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 8.74A7.93 7.93 0 0 0 4 13c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><span>Фліп</span></button>
-  <button class="btn oe" id="b-layers" aria-label="Шари"><svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg><span>Шари</span></button>
-  <button class="btn o3" id="b-freeze" aria-label="Заморозити"><svg viewBox="0 0 24 24"><path d="M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22v-2z"/></svg><span>Фріз</span></button>
-  <button class="btn o3" id="b-dive" aria-label="Пірнути"><svg viewBox="0 0 24 24"><path d="M11 4h2v10.17l3.59-3.58L18 12l-6 6-6-6 1.41-1.41L11 14.17V4zM4 20h16v2H4v-2z"/></svg><span>Пірнути</span></button>
-  <button class="btn o3" id="b-export" aria-label="Експорт"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg><span>Експорт</span></button>
-  <button class="btn" id="b-set" aria-label="Налаштування"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7 7 0 0 0 .06-.94 7 7 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.3 7.3 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7 7 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.34.61.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.49.42h3.8c.24 0 .44-.18.49-.42l.36-2.54a7.3 7.3 0 0 0 1.62-.94l2.39.96c.19.12.47.02.61-.22l1.92-3.32a.5.5 0 0 0-.12-.64zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg><span>Налашт</span></button>
-</div>
-<div id="shade"></div>
-<div id="sheet">
+<div id="dock">
   <div id="grip"></div>
-  <div id="sbody">
+  <div id="dsec">
+    <div class="dpane" id="p-set"><div class="dscroll">
     <div class="sh">// ЕФІР</div>
     <div class="srow"><span>ЯСКРАВІСТЬ ВІДЕО</span><input type="range" id="r-br" min="15" max="60" step="1"><span class="sv" id="v-br"></span></div>
     <div class="srow"><span>ТЕССЕЛЯЦІЯ</span><button class="tgl" id="g-tess">ВКЛ</button></div>
@@ -161,10 +155,40 @@ body{font-family:'Handjet',ui-monospace,'SF Mono',Menlo,monospace;font-weight:50
     <div class="srow"><span>СІТКА-ПІДЛОГА</span><button class="tgl" id="g-grid">ВКЛ</button></div>
     <div class="srow"><span>ШВИДКІСТЬ ПОЛЬОТУ</span><input type="range" id="r-fs" min="50" max="400" step="10"><span class="sv" id="v-fs"></span></div>
     <button id="s-reset">СКИНУТИ ВСЕ</button>
+    </div></div>
+    <div class="dpane" id="p-layers">
+      <div id="lgrid">
+        <button class="chip" id="c-face">ЛИЦЕ</button>
+        <button class="chip" id="c-gest">ЖЕСТИ</button>
+        <button class="chip" id="c-pose">ПОЗА</button>
+        <button class="chip" id="c-seg">СЕГМ</button>
+        <button class="chip" id="c-obj">ОБ'ЄКТИ</button>
+        <button class="chip warn" id="c-clear">СТЕРТИ</button>
+      </div>
+    </div>
+    <div class="dpane" id="p-export">
+      <div id="erow">
+        <button class="chip" id="e-ply">PLY</button>
+        <button class="chip" id="e-obj">OBJ</button>
+        <button class="chip" id="e-glb">GLB</button>
+      </div>
+    </div>
+  </div>
+  <div id="drow">
+    <div id="modetab">
+      <button class="mt on" id="m-efir">ЕФІР</button>
+      <button class="mt" id="m-3d">3D</button>
+    </div>
+    <button class="btn oe" id="b-flip" aria-label="Змінити камеру"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 13c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 8.74A7.93 7.93 0 0 0 4 13c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><span>Фліп</span></button>
+    <button class="btn oe" id="b-layers" aria-label="Шари"><svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg><span>Шари</span></button>
+    <button class="btn o3" id="b-freeze" aria-label="Заморозити"><svg viewBox="0 0 24 24"><path d="M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22v-2z"/></svg><span>Фріз</span></button>
+    <button class="btn o3" id="b-dive" aria-label="Пірнути"><svg viewBox="0 0 24 24"><path d="M11 4h2v10.17l3.59-3.58L18 12l-6 6-6-6 1.41-1.41L11 14.17V4zM4 20h16v2H4v-2z"/></svg><span>Пірнути</span></button>
+    <button class="btn o3" id="b-export" aria-label="Експорт"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg><span>Експорт</span></button>
+    <button class="btn" id="b-set" aria-label="Налаштування"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7 7 0 0 0 .06-.94 7 7 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.3 7.3 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7 7 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.34.61.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.49.42h3.8c.24 0 .44-.18.49-.42l.36-2.54a7.3 7.3 0 0 0 1.62-.94l2.39.96c.19.12.47.02.61-.22l1.92-3.32a.5.5 0 0 0-.12-.64zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg><span>Налашт</span></button>
   </div>
 </div>
 <div id="loader">
-  <div id="lhead">AXIOM TERM v4</div>
+  <div id="lhead">myDASH TERM v5</div>
   <div id="llog"></div>
   <div class="bar"><div id="fill"></div></div>
   <div id="ltxt">Розганяю тачку…</div>
@@ -174,7 +198,6 @@ body{font-family:'Handjet',ui-monospace,'SF Mono',Menlo,monospace;font-weight:50
 const $=id=>document.getElementById(id);
 const vid=$('vid'), cv=$('cv'), ctx=cv.getContext('2d'), glc=$('gl');
 const ltxt=$('ltxt'), fill=$('fill'), loader=$('loader'), retry=$('retry');
-const panel=$('panel');
 
 const ACC='#6AD582', AMBER='#FFC13C', RED='#DF2F2E';
 const ACC_D='rgba(106,213,130,.55)';
@@ -268,7 +291,7 @@ function buildCloud(ents,a,mir,c,s){
 // PLY ASCII: вершини з кольором + element edge
 function writePLY(c){
   const n=c.pos.length/3, m=c.edges.length/2;
-  let s='ply\nformat ascii 1.0\ncomment AXIOM cloud\n'+
+  let s='ply\nformat ascii 1.0\ncomment myDASH cloud\n'+
     'element vertex '+n+'\nproperty float x\nproperty float y\nproperty float z\n'+
     'property uchar red\nproperty uchar green\nproperty uchar blue\n'+
     'element edge '+m+'\nproperty int vertex1\nproperty int vertex2\nend_header\n';
@@ -282,7 +305,7 @@ function writePLY(c){
 }
 // OBJ: v з xyzrgb-розширенням + l-лінії (1-індексація)
 function writeOBJ(c){
-  let s='o axiom_cloud\n';
+  let s='o mydash_cloud\n';
   const n=c.pos.length/3;
   for(let i=0;i<n;i++){
     const o=i*3;
@@ -304,8 +327,8 @@ function writeGLB(c){
   const pad4=x=>(4-x%4)%4;
   const bPos=pos.byteLength, bCol=col.byteLength, bIdx=idx.byteLength;
   const binLen=bPos+bCol+bIdx+pad4(bIdx);
-  const json={ asset:{version:"2.0",generator:"AXIOM"}, scene:0, scenes:[{nodes:[0]}],
-    nodes:[{mesh:0,name:"axiom_cloud"}],
+  const json={ asset:{version:"2.0",generator:"myDASH"}, scene:0, scenes:[{nodes:[0]}],
+    nodes:[{mesh:0,name:"mydash_cloud"}],
     meshes:[{primitives:[
       {attributes:{POSITION:0,COLOR_0:1},mode:0},
       {attributes:{POSITION:0,COLOR_0:1},indices:2,mode:1}]}],
@@ -368,6 +391,20 @@ function eraseStrokes(strokes,ex,ey,r){
   }
   return out;
 }
+// Правдоподібність руки: ріже фантомні «руки» на зубах/обличчі.
+// face: {minx,miny,maxx,maxy} або null. Кисть = дистанція зап'ястя(0) -> MCP(9).
+function handPlausible(lm,face){
+  const sc=Math.hypot(lm[0].x-lm[9].x, lm[0].y-lm[9].y);
+  if(sc<0.045) return false;
+  if(face){
+    let inx=0;
+    for(const p of lm)
+      if(p.x>=face.minx&&p.x<=face.maxx&&p.y>=face.miny&&p.y<=face.maxy) inx++;
+    const fw=Math.max(face.maxx-face.minx,face.maxy-face.miny);
+    if(inx>=lm.length*0.9 && sc<fw*0.55) return false;
+  }
+  return true;
+}
 //#endregion PURE
 
 // ── РОЗМІРИ ────────────────────────────────────────────
@@ -391,6 +428,7 @@ let FL=null, GR=null, PL=null, SG=null, OD=null;
 let TESS,REYE,LEYE,RIRIS,LIRIS,HCONN,PCONN;
 let REYE_IDX,LEYE_IDX,RIRIS_IDX,LIRIS_IDX;
 let faceRes=null, gestRes=null, poseRes=null, objRes=null, segCache=null;
+let handsOK=[], gestsOK=[], faceBB=null;
 const layer={ face:true, gest:true, pose:false, seg:false, obj:false };
 const dead={};
 let facing='user', mirrored=true, stream=null;
@@ -405,7 +443,7 @@ let yawS=0,pitchS=0,rollS=0,distS=0,hasPose=false,hasDist=false;
 let gazeL=null, gazeR=null;
 
 // Чорнило (air-draw): стан на 2 руки
-const pinch=[{on:false,cur:null},{on:false,cur:null}];
+const pinch=[{on:false,cnt:0,cur:null},{on:false,cnt:0,cur:null}];
 let strokes=[];
 const MAX_PTS=8000;
 function strokeCount(){ let n=0; for(const q of strokes) n+=q.pts.length; return n; }
@@ -426,8 +464,8 @@ function toast(t,ms=1600){
 const CFG0={ br:0.3, tessOn:true, ta:0.22, lw:1, bars:true, poseHud:true, gaze:true,
   thr:0.5, edge:true, dim:true, pt:1, grid:true, fs:1.6 };
 let cfg={...CFG0};
-try{ Object.assign(cfg, JSON.parse(localStorage.getItem('axiom_cfg')||'{}')); }catch(_){}
-function saveCfg(){ try{ localStorage.setItem('axiom_cfg',JSON.stringify(cfg)); }catch(_){} }
+try{ Object.assign(cfg, JSON.parse(localStorage.getItem('mydash_cfg')||'{}')); }catch(_){}
+function saveCfg(){ try{ localStorage.setItem('mydash_cfg',JSON.stringify(cfg)); }catch(_){} }
 
 // ── ЛОАДЕР ─────────────────────────────────────────────
 let prog=0, typeTimer=null;
@@ -499,7 +537,8 @@ async function initVision(){
         { numFaces:1, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:true }),
       'Лице на місці', v=>FL=v],
     ['gest', ()=>mk(GestureRecognizer,`${MODELS}/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`,
-        { numHands:2 }),
+        { numHands:2, minHandDetectionConfidence:0.7,
+          minHandPresenceConfidence:0.7, minTrackingConfidence:0.6 }),
       'Жести під\u02BCїхали', v=>GR=v],
     ['pose', ()=>mk(PoseLandmarker,`${MODELS}/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
         { numPoses:1 }),
@@ -567,7 +606,7 @@ const ema=(o,v,k=0.3)=>o+(v-o)*k;
 function bsMap(cats){ const m={}; for(const c of cats) m[c.categoryName]=c.score; return m; }
 function postFace(){
   const lms=faceRes&&faceRes.faceLandmarks;
-  if(!lms||!lms.length){ hasPose=false; hasDist=false; gazeL=gazeR=null; return; }
+  if(!lms||!lms.length){ hasPose=false; hasDist=false; gazeL=gazeR=null; faceBB=null; return; }
   // Блендшейпи -> 5 метрів
   const bsl=faceRes.faceBlendshapes;
   if(bsl&&bsl.length){
@@ -591,6 +630,9 @@ function postFace(){
   } else hasPose=false;
   // Ірис -> дистанція + погляд
   const lm=lms[0], vw=vid.videoWidth, vh=vid.videoHeight;
+  { let a2=1,b2=0,c2=1,d2=0;
+    for(const p of lm){ if(p.x<a2)a2=p.x; if(p.x>b2)b2=p.x; if(p.y<c2)c2=p.y; if(p.y>d2)d2=p.y; }
+    faceBB={ minx:a2, maxx:b2, miny:c2, maxy:d2 }; }
   const eye=(eyeIdx,irisIdx)=>{
     let minx=1,maxx=0,miny=1,maxy=0;
     for(const i of eyeIdx){ const p=lm[i];
@@ -619,36 +661,47 @@ function postFace(){
 
 // ── ПОСТ-ОБРОБКА: ЖЕСТИ (пінч-пензель, hold-дії) ──────
 function postGest(now){
-  const hands=gestRes&&gestRes.landmarks?gestRes.landmarks:[];
+  const raw=gestRes&&gestRes.landmarks?gestRes.landmarks:[];
+  handsOK=[]; gestsOK=[];
+  for(let i=0;i<raw.length;i++){
+    if(handPlausible(raw[i],faceBB)){
+      handsOK.push(raw[i]);
+      gestsOK.push(gestRes.gestures&&gestRes.gestures[i]?gestRes.gestures[i]:[]);
+    }
+  }
+  const hands=handsOK;
   for(let h=0;h<2;h++){
     const s=pinch[h];
-    if(h>=hands.length){ s.on=false; if(h===0) s.cur=null; continue; }
+    if(h>=hands.length){ s.on=false; s.cnt=0; if(h===0) s.cur=null; continue; }
     const lm=hands[h];
     const scale=Math.hypot(lm[0].x-lm[9].x, lm[0].y-lm[9].y)||1e-6;
     const r=Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y)/scale;
     const want = s.on ? r<0.45 : r<0.35;       // гістерезис
-    const px=(lm[4].x+lm[8].x)/2, py=(lm[4].y+lm[8].y)/2;
-    const pz=((lm[4].z||0)+(lm[8].z||0))/2;
     if(want){
-      if(h===0){                                // рука 0 — пензель
-        if(!s.on || !s.cur){ s.cur={pts:[{x:px,y:py,z:pz}]}; strokes.push(s.cur); }
-        else{
-          const pts=s.cur.pts, lp=pts[pts.length-1];
-          if(Math.hypot(px-lp.x,py-lp.y)>0.006){
-            pts.push({x:px,y:py,z:pz});
-            while(strokeCount()>MAX_PTS && strokes.length>1) strokes.shift();
+      s.cnt++;
+      const px=(lm[4].x+lm[8].x)/2, py=(lm[4].y+lm[8].y)/2;
+      const pz=((lm[4].z||0)+(lm[8].z||0))/2;
+      if(s.cnt>=2){                             // дебаунс: 2 кадри поспіль
+        if(h===0){                              // рука 0 — пензель
+          if(!s.on || !s.cur){ s.cur={pts:[{x:px,y:py,z:pz}]}; strokes.push(s.cur); }
+          else{
+            const pts=s.cur.pts, lp=pts[pts.length-1];
+            if(Math.hypot(px-lp.x,py-lp.y)>0.006){
+              pts.push({x:px,y:py,z:pz});
+              while(strokeCount()>MAX_PTS && strokes.length>1) strokes.shift();
+            }
           }
+        }else{                                  // рука 1 — ластик з розрізанням
+          strokes=eraseStrokes(strokes,px,py,0.05);
+          if(pinch[0].cur && strokes.indexOf(pinch[0].cur)<0) pinch[0].cur=null;
         }
-      }else{                                    // рука 1 — ластик з розрізанням
-        strokes=eraseStrokes(strokes,px,py,0.05);
-        if(pinch[0].cur && strokes.indexOf(pinch[0].cur)<0) pinch[0].cur=null;
+        s.on=true;
       }
-      s.on=true;
-    } else { s.on=false; if(h===0) s.cur=null; }
+    } else { s.on=false; s.cnt=0; if(h===0) s.cur=null; }
   }
   // Hold-жести: долоня 1.2с = стерти, victory 1.2с = 3D
   let top='';
-  const gs=gestRes&&gestRes.gestures?gestRes.gestures:[];
+  const gs=gestsOK;
   for(const g of gs){ if(g.length&&g[0].score>0.6){ top=g[0].categoryName; break; } }
   if(top==='Open_Palm'||top==='Victory'){
     if(holdName!==top){ holdName=top; holdSince=now; }
@@ -781,8 +834,8 @@ function draw(){
   }
 
   // 4. Руки (з GestureRecognizer)
-  if(layer.gest && gestRes && gestRes.landmarks){
-    for(const lm of gestRes.landmarks){
+  if(layer.gest && handsOK.length){
+    for(const lm of handsOK){
       strokeConn(lm,HCONN,ACC,2*cfg.lw,ox,oy,dw,dh);
       dots(lm,AMBER,3,ox,oy,dw,dh);
     }
@@ -1069,7 +1122,7 @@ function fillPts(obj,lms,a){
 function upd3(dt){
   const a=(vid.videoWidth||640)/(vid.videoHeight||480);
   const fl=layer.face&&faceRes&&faceRes.faceLandmarks&&faceRes.faceLandmarks.length?faceRes.faceLandmarks:null;
-  const hl=layer.gest&&gestRes&&gestRes.landmarks&&gestRes.landmarks.length?gestRes.landmarks:null;
+  const hl=layer.gest&&handsOK.length?handsOK:null;
   const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
   // Авто-фіт: якір — лице; фолбек — все видиме. Рука лице більше не рухає.
   if(!frozen){
@@ -1151,6 +1204,7 @@ let threeLoading=false;
 async function setMode(m3){
   if(m3===mode3d) return;
   crtFlash();
+  setPane(null);
   if(m3){
     if(threeLoading) return;
     if(!THREE){
@@ -1169,7 +1223,6 @@ async function setMode(m3){
     if(fly) setFly(false,true);
     setFrozen(false,true);
     hideJoy();
-    expop.classList.remove('open');
     document.body.classList.remove('m3');
   }
   $('m-efir').classList.toggle('on',!mode3d);
@@ -1192,7 +1245,7 @@ function collectCloud(){
   const a=(vid.videoWidth||640)/(vid.videoHeight||480);
   const ents=[];
   const fl=layer.face&&faceRes&&faceRes.faceLandmarks&&faceRes.faceLandmarks.length?faceRes.faceLandmarks:null;
-  const hl=layer.gest&&gestRes&&gestRes.landmarks&&gestRes.landmarks.length?gestRes.landmarks:null;
+  const hl=layer.gest&&handsOK.length?handsOK:null;
   const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
   if(fl) ents.push({ lms:[fl[0]], conns:TESS,  color:[0.416,0.835,0.510] });
   if(hl) ents.push({ lms:hl,      conns:HCONN, color:[1,0.757,0.235] });
@@ -1216,21 +1269,20 @@ function doExport(fmt){
   const c=frozen?frozen.cloud:collectCloud();
   const n=c.pos.length/3, m=c.edges.length/2;
   if(!n){ toast('Хмара порожня — нема шо везти.'); return; }
-  const nm=`axiom_cloud_${stamp()}.${fmt}`;
+  const nm=`mydash_cloud_${stamp()}.${fmt}`;
   if(fmt==='ply') dl(nm,writePLY(c),'text/plain');
   else if(fmt==='obj') dl(nm,writeOBJ(c),'text/plain');
   else dl(nm,writeGLB(c),'model/gltf-binary');
   toast(fmt.toUpperCase()+': '+n+' тчк / '+m+' ребер.');
 }
-const expop=$('expop');
 $('m-efir').addEventListener('click',()=>setMode(false));
 $('m-3d').addEventListener('click',()=>setMode(true));
 $('b-freeze').addEventListener('click',()=>setFrozen(!frozen,false));
 $('b-dive').addEventListener('click',()=>{ if(mode3d&&THREE) setFly(!fly,false); });
-$('b-export').addEventListener('click',()=>expop.classList.toggle('open'));
-$('e-ply').addEventListener('click',()=>{ expop.classList.remove('open'); doExport('ply'); });
-$('e-obj').addEventListener('click',()=>{ expop.classList.remove('open'); doExport('obj'); });
-$('e-glb').addEventListener('click',()=>{ expop.classList.remove('open'); doExport('glb'); });
+$('b-export').addEventListener('click',()=>setPane('p-export'));
+$('e-ply').addEventListener('click',()=>{ setPane(null); doExport('ply'); });
+$('e-obj').addEventListener('click',()=>{ setPane(null); doExport('obj'); });
+$('e-glb').addEventListener('click',()=>{ setPane(null); doExport('glb'); });
 
 // ── КНОПКИ І ЧІПИ ──────────────────────────────────────
 $('b-flip').addEventListener('click',async ()=>{
@@ -1240,6 +1292,7 @@ $('b-flip').addEventListener('click',async ()=>{
   const prev=facing;
   facing = facing==='user' ? 'environment' : 'user';
   faceRes=gestRes=poseRes=objRes=null; segCache=null;
+  handsOK=[]; gestsOK=[]; faceBB=null;
   gazeL=gazeR=null; hasPose=hasDist=false;
   clearStrokes();
   try{ await startCam(facing); }
@@ -1247,10 +1300,10 @@ $('b-flip').addEventListener('click',async ()=>{
   applyMirror();
   delete b.dataset.busy; b.classList.remove('off');
 });
-$('b-layers').addEventListener('click',()=>panel.classList.toggle('open'));
+$('b-layers').addEventListener('click',()=>setPane('p-layers'));
 const CHIP_RES={
   face:()=>{ faceRes=null; gazeL=gazeR=null; hasPose=hasDist=false; },
-  gest:()=>{ gestRes=null; },
+  gest:()=>{ gestRes=null; handsOK=[]; gestsOK=[]; },
   pose:()=>{ poseRes=null; },
   seg:()=>{ segCache=null; },
   obj:()=>{ objRes=null; }
@@ -1270,25 +1323,25 @@ $('c-clear').addEventListener('click',()=>{ clearStrokes(); toast('Стерто.
 document.addEventListener('gesturestart',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>e.preventDefault());
 
-// ── ШТОРКА НАЛАШТУВАНЬ ────────────────────────────────
-const sheet=$('sheet'), shade=$('shade');
-function sheetOpen(o){ sheet.classList.toggle('open',o); shade.classList.toggle('open',o); }
-$('b-set').addEventListener('click',()=>sheetOpen(!sheet.classList.contains('open')));
-shade.addEventListener('click',()=>sheetOpen(false));
+// ── ДОК: єдина панель керування ───────────────────────
+const dock=$('dock'), dsec=$('dsec');
+let openPane=null;
+function setPane(id){
+  if(id && openPane===id) id=null;
+  openPane=id;
+  for(const p of ['p-set','p-layers','p-export'])
+    $(p).style.display=(p===id)?'block':'none';
+  dock.classList.toggle('open',!!id);
+  $('b-set').classList.toggle('on',id==='p-set');
+  $('b-layers').classList.toggle('on',id==='p-layers');
+  $('b-export').classList.toggle('on',id==='p-export');
+}
+$('b-set').addEventListener('click',()=>setPane('p-set'));
 {
   let sy=null;
   const grip=$('grip');
   grip.addEventListener('pointerdown',e=>{ sy=e.clientY; grip.setPointerCapture(e.pointerId); });
-  grip.addEventListener('pointermove',e=>{
-    if(sy===null) return;
-    sheet.style.transform='translateY('+Math.max(0,e.clientY-sy)+'px)';
-  });
-  const end=e=>{
-    if(sy===null) return;
-    const d=e.clientY-sy; sy=null;
-    sheet.style.transform='';
-    if(d>80) sheetOpen(false);
-  };
+  const end=e=>{ if(sy===null) return; if(e.clientY-sy>60) setPane(null); sy=null; };
   grip.addEventListener('pointerup',end);
   grip.addEventListener('pointercancel',end);
 }
