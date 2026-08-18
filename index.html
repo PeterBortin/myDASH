@@ -22,14 +22,14 @@ body:not(.m3) .o3{display:none!important;}
 #knob{position:absolute;width:40px;height:40px;border-radius:50%;background:rgba(198,245,66,.55);left:50%;top:50%;transform:translate(-50%,-50%);}
 #toastbox{position:absolute;left:50%;bottom:calc(150px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:8;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;}
 .toast{background:var(--card);border:1px solid rgba(255,255,255,.08);color:#fff;font-size:13px;padding:8px 14px;border-radius:12px;white-space:nowrap;}
-#subs{position:fixed;left:14px;right:14px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:5;background:rgba(25,25,27,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:10px 14px;display:none;flex-direction:column;gap:8px;}
+#subs{position:fixed;left:14px;right:14px;bottom:calc(96px + env(safe-area-inset-bottom));z-index:5;background:rgba(25,25,27,.92);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:10px 14px;display:none;flex-direction:column;gap:8px;pointer-events:none;}
 #subs.on{display:flex;}
 #eq{width:100%;height:26px;display:block;}
 #sline{font-size:14px;line-height:1.4;min-height:1.4em;max-height:2.8em;overflow:hidden;}
 #sfin{color:#fff;}
 #sint{color:var(--mut);}
-#dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(22,22,24,.97);border-top:1px solid rgba(255,255,255,.07);border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding:0 8px calc(8px + env(safe-area-inset-bottom));}
-#grip{width:40px;height:4px;border-radius:2px;background:rgba(255,255,255,.25);margin:8px auto 2px;flex:none;display:none;touch-action:none;}
+#dock{position:fixed;left:0;right:0;bottom:0;z-index:6;background:rgba(22,22,24,.97);border-top:1px solid rgba(255,255,255,.07);border-radius:20px 20px 0 0;display:flex;flex-direction:column;padding:0 calc(8px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(8px + env(safe-area-inset-left));}
+#grip{width:44px;height:4px;border-radius:2px;background:rgba(255,255,255,.25);background-clip:content-box;box-sizing:content-box;padding:10px 36px;margin:0 auto;flex:none;display:none;touch-action:none;}
 #dock.open #grip{display:block;}
 #dsec{overflow:hidden;max-height:0;transition:max-height .3s ease;}
 #dock.open #dsec{max-height:56vh;}
@@ -44,21 +44,21 @@ body:not(.m3) .o3{display:none!important;}
 .chip.dead{opacity:.25;}
 .chip.warn{color:var(--red);border-color:rgba(255,69,58,.35);}
 .chip:active{transform:scale(.95);}
-#drow{display:flex;align-items:center;justify-content:center;gap:4px;padding-top:6px;}
+#drow{display:flex;align-items:center;justify-content:center;gap:3px;padding-top:6px;overflow-x:auto;scrollbar-width:none;}
 #modetab{background:var(--card2);border-radius:12px;padding:3px;display:flex;flex:none;gap:2px;}
-.mt{width:52px;height:40px;border-radius:9px;background:transparent;border:none;color:var(--mut);font:inherit;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;touch-action:manipulation;}
+.mt{width:48px;height:40px;border-radius:9px;background:transparent;border:none;color:var(--mut);font:inherit;font-size:12px;font-weight:700;letter-spacing:.5px;cursor:pointer;touch-action:manipulation;transition:background .15s,color .15s,transform .08s;}
 .mt.on{background:var(--acc);color:#0B0B0C;}
-#drow .btn{width:46px;height:54px;background:transparent;border:none;border-radius:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;touch-action:manipulation;}
+#drow .btn{width:44px;height:54px;flex:none;background:transparent;border:none;border-radius:12px;color:var(--mut);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;touch-action:manipulation;transition:background .15s,color .15s,transform .08s;}
 .btn svg{width:20px;height:20px;fill:var(--mut);}
 .btn span{font-size:10px;letter-spacing:.2px;}
-.btn.on{color:var(--acc);}
+.btn.on{color:var(--acc);background:rgba(198,245,66,.12);}
 .btn.on svg{fill:var(--acc);}
 .btn:active{transform:scale(.92);}
 .btn.off{opacity:.35;}
 .tgl{background:var(--card2);border:1px solid rgba(255,255,255,.08);color:var(--acc);border-radius:10px;font:inherit;font-size:11px;font-weight:700;min-width:54px;height:28px;cursor:pointer;touch-action:manipulation;}
 .tgl.off{color:var(--mut);}
 .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;}
-.srow input[type=range]{flex:1;max-width:52%;accent-color:var(--acc);height:22px;touch-action:none;}
+.srow input[type=range]{flex:1;max-width:52%;accent-color:var(--acc);height:28px;touch-action:none;}
 .sv{min-width:36px;text-align:right;color:var(--mut);font-size:11px;}
 .sh{font-size:11px;letter-spacing:1.5px;color:var(--mut);font-weight:700;margin:14px 0 4px;}
 #settabs{display:flex;gap:8px;padding:10px 0 8px;}
@@ -79,6 +79,17 @@ body:not(.m3) .o3{display:none!important;}
 #ltxt{font-size:13px;color:var(--mut);text-align:center;max-width:84vw;line-height:1.5;}
 #ltxt.err{color:var(--red);}
 #retry,#lstart{background:var(--acc);border:none;color:#0B0B0C;font:inherit;font-size:13px;font-weight:700;letter-spacing:.5px;padding:12px 28px;border-radius:12px;cursor:pointer;margin-top:4px;}
+@media(hover:hover){
+  #drow .btn:hover,.mt:hover{background:rgba(255,255,255,.06);color:#fff;}
+  #drow .btn:hover svg{fill:#fff;}
+  #drow .btn.on:hover{background:rgba(198,245,66,.16);color:var(--acc);}
+  #drow .btn.on:hover svg{fill:var(--acc);}
+  .chip:hover,.tgl:hover{border-color:rgba(255,255,255,.28);}
+  .mt.on:hover{background:var(--acc);color:#0B0B0C;}
+}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+.mt:active,.tgl:active{transform:scale(.93);}
+#drow::-webkit-scrollbar{display:none;}
 </style>
 </head>
 <body>
@@ -124,7 +135,6 @@ body:not(.m3) .o3{display:none!important;}
         <button class="chip" id="c-pose">ПОЗА</button>
         <button class="chip" id="c-seg">СЕГМ</button>
         <button class="chip" id="c-obj">ОБ'ЄКТИ</button>
-        <button class="chip off" id="c-mask">МАСКА</button>
         <button class="chip warn" id="c-clear">СТЕРТИ</button>
       </div>
     </div>
@@ -141,6 +151,7 @@ body:not(.m3) .o3{display:none!important;}
         <div id="steno"></div>
         <div id="vrow">
           <button class="chip off" id="v-mic">МІКРО</button>
+          <button class="chip" id="v-lang">UK</button>
           <button class="chip" id="v-txt">TXT</button>
           <button class="chip" id="v-doc">DOC</button>
           <button class="chip" id="v-pdf">PDF</button>
@@ -156,7 +167,7 @@ body:not(.m3) .o3{display:none!important;}
     </div>
     <button class="btn oe" id="b-flip" aria-label="Змінити камеру"><svg viewBox="0 0 24 24"><path d="M12 5V2L8 6l4 4V7c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 13c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 8.74A7.93 7.93 0 0 0 4 13c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg><span>Фліп</span></button>
     <button class="btn oe" id="b-layers" aria-label="Шари"><svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg><span>Шари</span></button>
-    <button class="btn o3" id="b-freeze" aria-label="Заморозити"><svg viewBox="0 0 24 24"><path d="M22 11h-4.17l3.24-3.24-1.41-1.42L15 11h-2V9l4.66-4.66-1.42-1.41L13 6.17V2h-2v4.17L7.76 2.93 6.34 4.34 11 9v2H9L4.34 6.34 2.93 7.76 6.17 11H2v2h4.17l-3.24 3.24 1.41 1.42L9 13h2v2l-4.66 4.66 1.42 1.41L11 17.83V22h2v-4.17l3.24 3.24 1.42-1.41L13 15v-2h2l4.66 4.66 1.41-1.42L17.83 13H22v-2z"/></svg><span>Фріз</span></button>
+    <button class="btn oe" id="b-mask" aria-label="Маска"><svg viewBox="0 0 24 24"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S9.69 11.75 9 11.75zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S15.69 11.75 15 11.75zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-4c-2.33 0-4.32-1.45-5.12-3.5h1.67c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2h1.67c-.8 2.05-2.79 3.5-5.12 3.5z"/></svg><span>Маска</span></button>
     <button class="btn o3" id="b-dive" aria-label="Пірнути"><svg viewBox="0 0 24 24"><path d="M11 4h2v10.17l3.59-3.58L18 12l-6 6-6-6 1.41-1.41L11 14.17V4zM4 20h16v2H4v-2z"/></svg><span>Пірнути</span></button>
     <button class="btn o3" id="b-export" aria-label="Експорт"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg><span>Експорт</span></button>
     <button class="btn" id="b-mic" aria-label="Мова"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg><span>Мова</span></button>
@@ -502,7 +513,7 @@ function toast(t,ms=1600){
 
 // ── НАЛАШТУВАННЯ (localStorage) ────────────────────────
 const CFG0={ br:0.3, tessOn:true, ta:0.22, lw:1, bars:true, poseHud:true, gaze:true,
-  thr:0.5, edge:true, dim:true, pt:1, grid:true, fs:1.6, mo:0.85 };
+  thr:0.5, edge:true, dim:true, pt:1, grid:true, fs:1.6, mo:0.85, lang:'uk-UA' };
 let cfg={...CFG0};
 try{ Object.assign(cfg, JSON.parse(localStorage.getItem('mydash_cfg')||'{}')); }catch(_){}
 function saveCfg(){ try{ localStorage.setItem('mydash_cfg',JSON.stringify(cfg)); }catch(_){} }
@@ -882,18 +893,18 @@ photoIn.addEventListener('change',async ()=>{
     maskImg=bmp;
     if(!TRIS) TRIS=trisFromEdges(TESS);
     maskOn=true;
-    $('c-mask').classList.remove('off');
+    $('b-mask').classList.add('on');
     toast('Маска на місці. '+(TRIS.length/3|0)+' трикутників.');
   }catch(e){ toast('Фото не зайшло: '+((e&&e.name)||'помилка')); }
 });
-$('c-mask').addEventListener('click',()=>{
+$('b-mask').addEventListener('click',()=>{
   if(!maskImg){
     if(!fsv||!MPFace){ toast('Моделі ще їдуть, зачекай.'); return; }
     photoIn.click();
     return;
   }
   maskOn=!maskOn;
-  $('c-mask').classList.toggle('off',!maskOn);
+  $('b-mask').classList.toggle('on',maskOn);
 });
 $('g-photo').addEventListener('click',()=>{
   if(!fsv||!MPFace){ toast('Моделі ще їдуть, зачекай.'); return; }
@@ -1175,7 +1186,7 @@ function draw(){
 let THREE=null, scene=null, geo3={};
 const orbit={ th:0, ph:1.15, r:1.9, vth:0, vph:0 };
 const c3=[0,0,0]; let s3=1;                        // фіт: центр + масштаб
-let frozen=null, grid3=null;                       // фріз-знімок, сітка-підлога
+let grid3=null;                                    // сітка-підлога
 let fly=false, flyPos=null, flyYaw=0, flyPitch=0;
 let joyId=-1, joyOx=0, joyOy=0, joyVx=0, joyVy=0, lookId=-1;
 let orbN=0, t3last=0;
@@ -1227,6 +1238,7 @@ async function init3D(){
   const ptr=new Map(), downs=new Map();
   let pd=0, lastTap=0, lastTapX=0, lastTapY=0;
   glc.addEventListener('pointerdown',e=>{
+    if(openPane) setPane(null);
     glc.setPointerCapture(e.pointerId);
     downs.set(e.pointerId,{t:performance.now(),x:e.clientX,y:e.clientY});
     if(fly){
@@ -1340,7 +1352,7 @@ function upd3(dt){
   const hl=layer.gest&&handsOK.length?handsOK:null;
   const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
   // Авто-фіт: якір — лице; фолбек — все видиме. Рука лице більше не рухає.
-  if(!frozen){
+  {
     const flat=[];
     const push=ls=>{ for(const lm of ls) for(const p of lm){ const m=mapPt(p,a,mirrored); flat.push(m[0],m[1],m[2]); } };
     if(fl) push([fl[0]]);
@@ -1352,7 +1364,7 @@ function upd3(dt){
       s3+=(f.s-s3)*k;
     }
   }
-  if(!frozen){
+  {
   if(fl){ fillLines(geo3.faceL,fl[0],TESS,a); fillPts(geo3.faceP,[fl[0]],a); }
   else geo3.faceL.visible=geo3.faceP.visible=false;
   if(hl){
@@ -1438,23 +1450,11 @@ async function setMode(m3){
   }else{
     mode3d=false;
     if(fly) setFly(false,true);
-    setFrozen(false,true);
     hideJoy();
     document.body.classList.remove('m3');
   }
   $('m-efir').classList.toggle('on',!mode3d);
   $('m-3d').classList.toggle('on',mode3d);
-}
-function setFrozen(on,silent){
-  if(on&&!frozen){
-    frozen={ cloud: collectCloud() };
-    $('b-freeze').classList.add('on');
-    if(!silent) toast('Фріз. Хмара стоїть.');
-  }else if(!on&&frozen){
-    frozen=null;
-    $('b-freeze').classList.remove('on');
-    if(!silent) toast('Розморозив.');
-  }
 }
 
 // ── ЕКСПОРТ ХМАРИ: PLY / OBJ / GLB ────────────────────
@@ -1483,7 +1483,7 @@ function dl(name,data,mime){
   setTimeout(()=>{ URL.revokeObjectURL(u); el.remove(); },1500);
 }
 function doExport(fmt){
-  const c=frozen?frozen.cloud:collectCloud();
+  const c=collectCloud();
   const n=c.pos.length/3, m=c.edges.length/2;
   if(!n){ toast('Хмара порожня — нема шо везти.'); return; }
   const nm=`mydash_cloud_${stamp()}.${fmt}`;
@@ -1494,7 +1494,6 @@ function doExport(fmt){
 }
 $('m-efir').addEventListener('click',()=>setMode(false));
 $('m-3d').addEventListener('click',()=>setMode(true));
-$('b-freeze').addEventListener('click',()=>setFrozen(!frozen,false));
 $('b-dive').addEventListener('click',()=>{ if(mode3d&&THREE) setFly(!fly,false); });
 $('b-export').addEventListener('click',()=>setPane('p-export'));
 $('e-ply').addEventListener('click',()=>{ setPane(null); doExport('ply'); });
@@ -1577,6 +1576,7 @@ function setTab(t3){
 $('st-e').addEventListener('click',()=>setTab(false));
 $('st-3').addEventListener('click',()=>setTab(true));
 $('b-set').addEventListener('click',()=>setPane('p-set'));
+cv.addEventListener('pointerdown',()=>{ if(openPane) setPane(null); });
 {
   let sy=null;
   const grip=$('grip');
@@ -1625,6 +1625,7 @@ $('s-reset').addEventListener('click',()=>{
   vid.style.filter='brightness('+cfg.br+')';
   if(grid3) grid3.visible=cfg.grid;
   applyPt();
+  $('v-lang').textContent='UK';
   syncSheet(); saveCfg();
   toast('Скинуто в заводські.');
 });
@@ -1659,7 +1660,7 @@ function startRec(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){ toast('Розпізнавання мови тут не водиться. EQ працює.'); return; }
   rec=new SR();
-  rec.lang='uk-UA'; rec.continuous=true; rec.interimResults=true;
+  rec.lang=cfg.lang; rec.continuous=true; rec.interimResults=true;
   rec.onresult=e=>{
     let fin='', intm='';
     for(let i=e.resultIndex;i<e.results.length;i++){
@@ -1806,6 +1807,18 @@ async function initGyro(){
   }catch(_){}
 }
 $('b-mic').addEventListener('click',()=>setPane('p-voice'));
+function setLang(l){
+  cfg.lang=l; saveCfg();
+  $('v-lang').textContent = l==='uk-UA' ? 'UK' : 'RU';
+  if(micOn && rec){
+    const old=rec;
+    old.onend=null;
+    try{ old.stop(); }catch(_){}
+    startRec();
+  }
+}
+$('v-lang').textContent = cfg.lang==='uk-UA' ? 'UK' : 'RU';
+$('v-lang').addEventListener('click',()=>setLang(cfg.lang==='uk-UA'?'ru-RU':'uk-UA'));
 $('v-mic').addEventListener('click',()=>setMic(!micOn));
 $('v-txt').addEventListener('click',()=>{
   if(!steno.length){ toast('Стенограма порожня.'); return; }
