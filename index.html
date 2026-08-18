@@ -57,10 +57,13 @@ body:not(.m3) .o3{display:none!important;}
 .btn.off{opacity:.35;}
 .tgl{background:var(--card2);border:1px solid rgba(255,255,255,.08);color:var(--acc);border-radius:10px;font:inherit;font-size:11px;font-weight:700;min-width:54px;height:28px;cursor:pointer;touch-action:manipulation;}
 .tgl.off{color:var(--mut);}
-.srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 0;font-size:13px;}
+.srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;}
 .srow input[type=range]{flex:1;max-width:52%;accent-color:var(--acc);height:22px;touch-action:none;}
 .sv{min-width:36px;text-align:right;color:var(--mut);font-size:11px;}
 .sh{font-size:11px;letter-spacing:1.5px;color:var(--mut);font-weight:700;margin:14px 0 4px;}
+#settabs{display:flex;gap:8px;padding:10px 0 8px;}
+#settabs .chip{flex:1;height:36px;}
+.chip.on{background:var(--acc);color:#0B0B0C;border-color:transparent;}
 #steno{display:flex;flex-direction:column;gap:6px;padding:4px 0 10px;font-size:13px;line-height:1.4;}
 .sl b{color:var(--mut);font-weight:600;margin-right:8px;font-size:11px;}
 #vrow{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 12px;}
@@ -89,22 +92,30 @@ body:not(.m3) .o3{display:none!important;}
   <div id="grip"></div>
   <div id="dsec">
     <div class="dpane" id="p-set"><div class="dscroll">
-    <div class="sh">// ЕФІР</div>
-    <div class="srow"><span>ЯСКРАВІСТЬ ВІДЕО</span><input type="range" id="r-br" min="15" max="60" step="1"><span class="sv" id="v-br"></span></div>
-    <div class="srow"><span>ТЕССЕЛЯЦІЯ</span><button class="tgl" id="g-tess">ВКЛ</button></div>
-    <div class="srow"><span>ПРОЗОРІСТЬ ТЕСС.</span><input type="range" id="r-ta" min="5" max="50" step="1"><span class="sv" id="v-ta"></span></div>
-    <div class="srow"><span>ТОВЩИНА ЛІНІЙ</span><input type="range" id="r-lw" min="10" max="30" step="1"><span class="sv" id="v-lw"></span></div>
-    <div class="srow"><span>БАРИ МІМІКИ</span><button class="tgl" id="g-bars">ВКЛ</button></div>
-    <div class="srow"><span>КОМПАС + ДИСТ</span><button class="tgl" id="g-pose">ВКЛ</button></div>
-    <div class="srow"><span>ПОГЛЯД</span><button class="tgl" id="g-gaze">ВКЛ</button></div>
-    <div class="srow"><span>ПОРІГ ОБ'ЄКТІВ</span><input type="range" id="r-thr" min="30" max="80" step="5"><span class="sv" id="v-thr"></span></div>
-    <div class="srow"><span>КОНТУР СЕГМ.</span><button class="tgl" id="g-edge">ВКЛ</button></div>
-    <div class="srow"><span>ЗАТЕМНЕННЯ СЕГМ.</span><button class="tgl" id="g-dim">ВКЛ</button></div>
-    <div class="sh">// 3D</div>
-    <div class="srow"><span>РОЗМІР ТОЧОК</span><input type="range" id="r-pt" min="50" max="200" step="10"><span class="sv" id="v-pt"></span></div>
-    <div class="srow"><span>СІТКА-ПІДЛОГА</span><button class="tgl" id="g-grid">ВКЛ</button></div>
-    <div class="srow"><span>ШВИДКІСТЬ ПОЛЬОТУ</span><input type="range" id="r-fs" min="50" max="400" step="10"><span class="sv" id="v-fs"></span></div>
-    <button id="s-reset">СКИНУТИ ВСЕ</button>
+      <div id="settabs">
+        <button class="chip on" id="st-e">ЕФІР</button>
+        <button class="chip" id="st-3">3D</button>
+      </div>
+      <div id="sg-e">
+        <div class="srow"><span>ЯСКРАВІСТЬ ВІДЕО</span><input type="range" id="r-br" min="15" max="60" step="1"><span class="sv" id="v-br"></span></div>
+        <div class="srow"><span>ТЕССЕЛЯЦІЯ</span><button class="tgl" id="g-tess">ВКЛ</button></div>
+        <div class="srow"><span>ПРОЗОРІСТЬ ТЕСС.</span><input type="range" id="r-ta" min="5" max="50" step="1"><span class="sv" id="v-ta"></span></div>
+        <div class="srow"><span>ТОВЩИНА ЛІНІЙ</span><input type="range" id="r-lw" min="10" max="30" step="1"><span class="sv" id="v-lw"></span></div>
+        <div class="srow"><span>БАРИ МІМІКИ</span><button class="tgl" id="g-bars">ВКЛ</button></div>
+        <div class="srow"><span>КОМПАС + ДИСТ</span><button class="tgl" id="g-pose">ВКЛ</button></div>
+        <div class="srow"><span>ПОГЛЯД</span><button class="tgl" id="g-gaze">ВКЛ</button></div>
+        <div class="srow"><span>ПОРІГ ОБ'ЄКТІВ</span><input type="range" id="r-thr" min="30" max="80" step="5"><span class="sv" id="v-thr"></span></div>
+        <div class="srow"><span>КОНТУР СЕГМ.</span><button class="tgl" id="g-edge">ВКЛ</button></div>
+        <div class="srow"><span>ЗАТЕМНЕННЯ СЕГМ.</span><button class="tgl" id="g-dim">ВКЛ</button></div>
+        <div class="srow"><span>МАСКА ПРОЗОРІСТЬ</span><input type="range" id="r-mo" min="20" max="100" step="5"><span class="sv" id="v-mo"></span></div>
+        <div class="srow"><span>ФОТО МАСКИ</span><button class="tgl" id="g-photo">ОБРАТИ</button></div>
+      </div>
+      <div id="sg-3" hidden>
+        <div class="srow"><span>РОЗМІР ТОЧОК</span><input type="range" id="r-pt" min="50" max="200" step="10"><span class="sv" id="v-pt"></span></div>
+        <div class="srow"><span>СІТКА-ПІДЛОГА</span><button class="tgl" id="g-grid">ВКЛ</button></div>
+        <div class="srow"><span>ШВИДКІСТЬ ПОЛЬОТУ</span><input type="range" id="r-fs" min="50" max="400" step="10"><span class="sv" id="v-fs"></span></div>
+      </div>
+      <button id="s-reset">СКИНУТИ ВСЕ</button>
     </div></div>
     <div class="dpane" id="p-layers">
       <div id="lgrid">
@@ -113,6 +124,7 @@ body:not(.m3) .o3{display:none!important;}
         <button class="chip" id="c-pose">ПОЗА</button>
         <button class="chip" id="c-seg">СЕГМ</button>
         <button class="chip" id="c-obj">ОБ'ЄКТИ</button>
+        <button class="chip off" id="c-mask">МАСКА</button>
         <button class="chip warn" id="c-clear">СТЕРТИ</button>
       </div>
     </div>
@@ -402,6 +414,36 @@ function writePDF(pages){
   for(const c of chunks){ out.set(c,o); o+=c.length; }
   return out.buffer;
 }
+// Тріангуляція з ребер: пошук 3-клік; кожен трикутник рівно раз
+function trisFromEdges(conns){
+  const adj=new Map();
+  const add=(a,b)=>{ if(!adj.has(a)) adj.set(a,new Set()); adj.get(a).add(b); };
+  for(const c of conns){ add(c.start,c.end); add(c.end,c.start); }
+  const tris=[];
+  for(const c of conns){
+    const a=Math.min(c.start,c.end), b=Math.max(c.start,c.end);
+    const na=adj.get(a), nb=adj.get(b);
+    for(const v of na){
+      if(v<=b) continue;
+      if(nb.has(v)) tris.push(a,b,v);
+    }
+  }
+  return tris;
+}
+// Афінна з 3 пар точок: s,d = [x0,y0,x1,y1,x2,y2] -> [a,b,c,d,e,f] для setTransform
+function affineOf(s,d){
+  const [x0,y0,x1,y1,x2,y2]=s, [u0,v0,u1,v1,u2,v2]=d;
+  const den=x0*(y1-y2)+x1*(y2-y0)+x2*(y0-y1);
+  if(!den) return null;
+  return [
+    (u0*(y1-y2)+u1*(y2-y0)+u2*(y0-y1))/den,
+    (v0*(y1-y2)+v1*(y2-y0)+v2*(y0-y1))/den,
+    (u0*(x2-x1)+u1*(x0-x2)+u2*(x1-x0))/den,
+    (v0*(x2-x1)+v1*(x0-x2)+v2*(x1-x0))/den,
+    (u0*(x1*y2-x2*y1)+u1*(x2*y0-x0*y2)+u2*(x0*y1-x1*y0))/den,
+    (v0*(x1*y2-x2*y1)+v1*(x2*y0-x0*y2)+v2*(x0*y1-x1*y0))/den
+  ];
+}
 //#endregion PURE
 
 // ── РОЗМІРИ ────────────────────────────────────────────
@@ -460,7 +502,7 @@ function toast(t,ms=1600){
 
 // ── НАЛАШТУВАННЯ (localStorage) ────────────────────────
 const CFG0={ br:0.3, tessOn:true, ta:0.22, lw:1, bars:true, poseHud:true, gaze:true,
-  thr:0.5, edge:true, dim:true, pt:1, grid:true, fs:1.6 };
+  thr:0.5, edge:true, dim:true, pt:1, grid:true, fs:1.6, mo:0.85 };
 let cfg={...CFG0};
 try{ Object.assign(cfg, JSON.parse(localStorage.getItem('mydash_cfg')||'{}')); }catch(_){}
 function saveCfg(){ try{ localStorage.setItem('mydash_cfg',JSON.stringify(cfg)); }catch(_){} }
@@ -487,9 +529,20 @@ function applyMirror(){
   vid.classList.toggle('mir',mirrored);
 }
 
-// ── НЕЙРОНКИ: мульти-URL кандидати, живий ретрай ──────
-let fsv=null, JOBS=null;
+// ── НЕЙРОНКИ: 3×tasks-vision + legacy seg + tfjs coco-ssd ──
+let fsv=null, JOBS=null, MPFace=null;
+let segBusy=false, objBusy=false;
 const deadErr={};
+const FACE_URL=`${MODELS}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`;
+function loadScript(u){
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src=u; s.crossOrigin='anonymous';
+    s.onload=res;
+    s.onerror=()=>rej(new Error('script'));
+    document.head.appendChild(s);
+  });
+}
 const mk=async (Cls,urls,extra)=>{
   let lastErr=null;
   for(const u of urls){
@@ -501,18 +554,40 @@ const mk=async (Cls,urls,extra)=>{
   }
   throw lastErr||new Error('load');
 };
+// СЕГМ: легасі selfie_segmentation — модель усередині npm-пакета на jsDelivr
+async function mkSeg(){
+  const BASE='https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation@0.1.1675465747';
+  await loadScript(`${BASE}/selfie_segmentation.js`);
+  const sg=new SelfieSegmentation({ locateFile:f=>`${BASE}/${f}` });
+  sg.setOptions({ modelSelection:0 });
+  sg.onResults(r=>{ segBusy=false; postSeg(r); });
+  await sg.initialize();
+  return sg;
+}
+// ОБ'ЄКТИ: tfjs + coco-ssd (COCO 80 класів, lite_mobilenet_v2)
+async function mkObj(){
+  await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js');
+  await loadScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js');
+  return await cocoSsd.load({ base:'lite_mobilenet_v2' });
+}
+function adaptCoco(ds){
+  return { detections: ds.map(d2=>({
+    boundingBox:{ originX:d2.bbox[0], originY:d2.bbox[1], width:d2.bbox[2], height:d2.bbox[3] },
+    categories:[{ categoryName:d2.class, score:d2.score }]
+  })) };
+}
 async function loadModel(name){
   const j=JOBS[name];
-  const inst=await mk(j.cls,j.urls,j.extra);
+  const inst=await j.make();
   j.set(inst);
   return inst;
 }
 async function initVision(){
   const mp=await import(`${CDN}/vision_bundle.mjs`);
-  const { FilesetResolver, FaceLandmarker, GestureRecognizer, PoseLandmarker,
-          ImageSegmenter, ObjectDetector }=mp;
+  const { FilesetResolver, FaceLandmarker, GestureRecognizer, PoseLandmarker }=mp;
+  MPFace=FaceLandmarker;
   fsv=await FilesetResolver.forVisionTasks(`${CDN}/wasm`);
-  bump('WASM на місці. Тягну пʼять моделей…',8);
+  bump('WASM на місці. Тягну моделі…',8);
 
   TESS=FaceLandmarker.FACE_LANDMARKS_TESSELATION;
   REYE=FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE;
@@ -525,27 +600,18 @@ async function initVision(){
   RIRIS_IDX=uniqIdx(RIRIS); LIRIS_IDX=uniqIdx(LIRIS);
 
   JOBS={
-    face:{ cls:FaceLandmarker, msg:'Лице на місці', set:v=>FL=v,
-      urls:[`${MODELS}/face_landmarker/face_landmarker/float16/1/face_landmarker.task`],
-      extra:{ numFaces:1, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:true } },
-    gest:{ cls:GestureRecognizer, msg:'Жести підʼїхали', set:v=>GR=v,
-      urls:[`${MODELS}/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`],
-      extra:{ numHands:2, minHandDetectionConfidence:0.7,
-              minHandPresenceConfidence:0.7, minTrackingConfidence:0.6 } },
-    pose:{ cls:PoseLandmarker, msg:'Поза в строю', set:v=>PL=v,
-      urls:[`${MODELS}/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`,
-            `${MODELS}/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task`],
-      extra:{ numPoses:1 } },
-    seg:{ cls:ImageSegmenter, msg:'Сегментація тут', set:v=>SG=v,
-      urls:[`${MODELS}/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.task`,
-            `${MODELS}/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.task`,
-            `${MODELS}/image_segmenter/selfie_segmenter/float32/latest/selfie_segmenter.task`],
-      extra:{ outputConfidenceMasks:true, outputCategoryMask:false } },
-    obj:{ cls:ObjectDetector, msg:'Обʼєкти бачу', set:v=>OD=v,
-      urls:[`${MODELS}/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.task`,
-            `${MODELS}/object_detector/efficientdet_lite0/float32/latest/efficientdet_lite0.task`,
-            `${MODELS}/object_detector/efficientdet_lite0/float16/latest/efficientdet_lite0.task`],
-      extra:{ scoreThreshold:0.3, maxResults:8 } }
+    face:{ msg:'Лице на місці', set:v=>FL=v,
+      make:()=>mk(FaceLandmarker,[FACE_URL],
+        { numFaces:1, outputFaceBlendshapes:true, outputFacialTransformationMatrixes:true }) },
+    gest:{ msg:'Жести підʼїхали', set:v=>GR=v,
+      make:()=>mk(GestureRecognizer,[`${MODELS}/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task`],
+        { numHands:2, minHandDetectionConfidence:0.7,
+          minHandPresenceConfidence:0.7, minTrackingConfidence:0.6 }) },
+    pose:{ msg:'Поза в строю', set:v=>PL=v,
+      make:()=>mk(PoseLandmarker,[`${MODELS}/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task`],
+        { numPoses:1 }) },
+    seg:{ msg:'Сегментація тут (legacy)', set:v=>SG=v, make:mkSeg },
+    obj:{ msg:'Обʼєкти бачу (COCO)', set:v=>OD=v, make:mkObj }
   };
   const names=Object.keys(JOBS);
   const res=await Promise.allSettled(names.map(async n=>{
@@ -601,8 +667,16 @@ function dispatch(w,now){
   if(w==='face'){ faceRes=FL.detectForVideo(vid,now); postFace(now); }
   else if(w==='gest'){ gestRes=GR.recognizeForVideo(vid,now); postGest(now); }
   else if(w==='pose'){ poseRes=PL.detectForVideo(vid,now); }
-  else if(w==='seg'){ const r=SG.segmentForVideo(vid,now); postSeg(r); }
-  else if(w==='obj'){ objRes=OD.detectForVideo(vid,now); }
+  else if(w==='seg'){
+    if(!segBusy){ segBusy=true; SG.send({ image:vid }).catch(()=>{ segBusy=false; }); }
+  }
+  else if(w==='obj'){
+    if(!objBusy){
+      objBusy=true;
+      OD.detect(vid,8,0.3).then(ds=>{ objBusy=false; objRes=adaptCoco(ds); })
+        .catch(()=>{ objBusy=false; });
+    }
+  }
 }
 
 // ── ПОСТ-ОБРОБКА: ЛИЦЕ (міміка, поза, ірис) ───────────
@@ -662,6 +736,8 @@ function postFace(now){
   } else hasDist=false;
   gazeR={ cx:R.cx, cy:R.cy, dx:R.cx-R.ex, dy:R.cy-R.ey };
   gazeL={ cx:L.cx, cy:L.cy, dx:L.cx-L.ex, dy:L.cy-L.ey };
+  if(maskOn && maskImg && TRIS) renderWarp(lm,vw,vh);
+  else warpBox=null;
 }
 
 // ── ПОСТ-ОБРОБКА: ЖЕСТИ (пінч-пензель, hold-дії) ──────
@@ -757,29 +833,109 @@ function postGest(now){
 
 // ── ПОСТ-ОБРОБКА: СЕГМЕНТАЦІЯ ─────────────────────────
 const mcv=document.createElement('canvas'), mcX=mcv.getContext('2d');
+const segWork=document.createElement('canvas');
+const segWx=segWork.getContext('2d',{ willReadFrequently:true });
 function postSeg(res){
   try{
-    const masks=res&&res.confidenceMasks;
-    if(!masks||!masks.length){ segCache=null; return; }
-    const m=masks[masks.length-1];               // особа — останній клас
-    const mw=m.width, mh=m.height;
-    const arr=m.getAsFloat32Array();
-    const stride=Math.max(1,Math.ceil(mw/192));
-    const gw=Math.floor((mw-1)/stride)+1, gh=Math.floor((mh-1)/stride)+1;
+    const m=res&&res.segmentationMask;
+    if(!m){ segCache=null; return; }
+    const gw=96, gh=96;
+    if(segWork.width!==gw||segWork.height!==gh){ segWork.width=gw; segWork.height=gh; }
+    segWx.clearRect(0,0,gw,gh);
+    segWx.drawImage(m,0,0,gw,gh);
+    const raw=segWx.getImageData(0,0,gw,gh).data;
+    let alphaVar=false;
+    for(let i=0;i<gw*gh;i+=37){ if(raw[i*4+3]<250){ alphaVar=true; break; } }
     const grid=new Float32Array(gw*gh);
-    for(let y=0;y<gh;y++){ const sy=y*stride*mw;
-      for(let x=0;x<gw;x++) grid[y*gw+x]=arr[sy+x*stride]; }
-    // Альфа-маска -> mcv
+    for(let i=0;i<gw*gh;i++) grid[i]=alphaVar ? raw[i*4+3]/255 : raw[i*4]/255;
     if(mcv.width!==gw||mcv.height!==gh){ mcv.width=gw; mcv.height=gh; }
     const img=mcX.createImageData(gw,gh), px=img.data;
     for(let i=0;i<grid.length;i++){
-      const a=Math.max(0,Math.min(1,grid[i]));
-      const o=i*4; px[o]=255; px[o+1]=255; px[o+2]=255; px[o+3]=(a*255)|0;
+      const o=i*4;
+      px[o]=255; px[o+1]=255; px[o+2]=255; px[o+3]=(grid[i]*255)|0;
     }
     mcX.putImageData(img,0,0);
     segCache={ segs:marchingSquares(grid,gw,gh,0.5), gw, gh };
-    for(const mm of masks){ try{ mm.close(); }catch(_){} }
   }catch(_){ segCache=null; }
+}
+
+// ── МАСКА: жива проєкція фото на сітку ────────────────
+let maskOn=false, maskImg=null, maskLms=null, FLI=null, TRIS=null, warpBox=null;
+const warpCv=document.createElement('canvas'), warpX=warpCv.getContext('2d');
+const photoIn=document.createElement('input');
+photoIn.type='file'; photoIn.accept='image/*';
+photoIn.addEventListener('change',async ()=>{
+  const f=photoIn.files&&photoIn.files[0];
+  photoIn.value='';
+  if(!f) return;
+  toast('Читаю фото…');
+  try{
+    const bmp=await createImageBitmap(f);
+    if(!FLI){
+      FLI=await MPFace.createFromOptions(fsv,{
+        baseOptions:{ modelAssetPath:FACE_URL, delegate:'CPU' },
+        runningMode:'IMAGE', numFaces:1 });
+    }
+    const r=FLI.detect(bmp);
+    if(!r||!r.faceLandmarks||!r.faceLandmarks.length){ toast('Лиця на фото не бачу.'); return; }
+    maskLms=r.faceLandmarks[0];
+    maskImg=bmp;
+    if(!TRIS) TRIS=trisFromEdges(TESS);
+    maskOn=true;
+    $('c-mask').classList.remove('off');
+    toast('Маска на місці. '+(TRIS.length/3|0)+' трикутників.');
+  }catch(e){ toast('Фото не зайшло: '+((e&&e.name)||'помилка')); }
+});
+$('c-mask').addEventListener('click',()=>{
+  if(!maskImg){
+    if(!fsv||!MPFace){ toast('Моделі ще їдуть, зачекай.'); return; }
+    photoIn.click();
+    return;
+  }
+  maskOn=!maskOn;
+  $('c-mask').classList.toggle('off',!maskOn);
+});
+$('g-photo').addEventListener('click',()=>{
+  if(!fsv||!MPFace){ toast('Моделі ще їдуть, зачекай.'); return; }
+  photoIn.click();
+});
+function renderWarp(lm,vw,vh){
+  let mnx=1,mny=1,mxx=0,mxy=0;
+  for(const p of lm){
+    if(p.x<mnx)mnx=p.x; if(p.x>mxx)mxx=p.x;
+    if(p.y<mny)mny=p.y; if(p.y>mxy)mxy=p.y;
+  }
+  const pad=0.06;
+  const bx=Math.max(0,(mnx-pad)*vw), by=Math.max(0,(mny-pad)*vh);
+  const bw=Math.min(vw,(mxx+pad)*vw)-bx, bh=Math.min(vh,(mxy+pad)*vh)-by;
+  if(bw<8||bh<8){ warpBox=null; return; }
+  const S=Math.min(1.6, 640/Math.max(bw,bh));
+  const W3=Math.max(2,Math.round(bw*S)), H3=Math.max(2,Math.round(bh*S));
+  if(warpCv.width!==W3||warpCv.height!==H3){ warpCv.width=W3; warpCv.height=H3; }
+  warpX.clearRect(0,0,W3,H3);
+  const iw=maskImg.width, ih=maskImg.height, sl=maskLms, EX=1.03;
+  for(let t=0;t<TRIS.length;t+=3){
+    const i0=TRIS[t], i1=TRIS[t+1], i2=TRIS[t+2];
+    let dx0=(lm[i0].x*vw-bx)*S, dy0=(lm[i0].y*vh-by)*S;
+    let dx1=(lm[i1].x*vw-bx)*S, dy1=(lm[i1].y*vh-by)*S;
+    let dx2=(lm[i2].x*vw-bx)*S, dy2=(lm[i2].y*vh-by)*S;
+    const cx3=(dx0+dx1+dx2)/3, cy3=(dy0+dy1+dy2)/3;
+    dx0=cx3+(dx0-cx3)*EX; dy0=cy3+(dy0-cy3)*EX;
+    dx1=cx3+(dx1-cx3)*EX; dy1=cy3+(dy1-cy3)*EX;
+    dx2=cx3+(dx2-cx3)*EX; dy2=cy3+(dy2-cy3)*EX;
+    const M=affineOf(
+      [sl[i0].x*iw,sl[i0].y*ih, sl[i1].x*iw,sl[i1].y*ih, sl[i2].x*iw,sl[i2].y*ih],
+      [dx0,dy0, dx1,dy1, dx2,dy2]);
+    if(!M) continue;
+    warpX.save();
+    warpX.beginPath();
+    warpX.moveTo(dx0,dy0); warpX.lineTo(dx1,dy1); warpX.lineTo(dx2,dy2);
+    warpX.closePath(); warpX.clip();
+    warpX.setTransform(M[0],M[1],M[2],M[3],M[4],M[5]);
+    warpX.drawImage(maskImg,0,0);
+    warpX.restore();
+  }
+  warpBox={ bx,by,bw,bh };
 }
 
 // ── СЛОВНИК COCO -> УКР ────────────────────────────────
@@ -855,6 +1011,13 @@ function draw(){
     }
     ctx.stroke();
     }
+  }
+
+  // МАСКА: фото, натягнуте на живу сітку
+  if(maskOn && warpBox && faceRes && faceRes.faceLandmarks && faceRes.faceLandmarks.length){
+    ctx.globalAlpha=cfg.mo;
+    ctx.drawImage(warpCv, ox+warpBox.bx*s, oy+warpBox.by*s, warpBox.bw*s, warpBox.bh*s);
+    ctx.globalAlpha=1;
   }
 
   // 2. Поза
@@ -1404,7 +1567,15 @@ function setPane(id){
   $('b-export').classList.toggle('on',id==='p-export');
   $('b-mic').classList.toggle('on',id==='p-voice');
   if(id==='p-voice') renderSteno();
+  if(id==='p-set') setTab(mode3d);
 }
+function setTab(t3){
+  $('sg-e').hidden=t3; $('sg-3').hidden=!t3;
+  $('st-e').classList.toggle('on',!t3);
+  $('st-3').classList.toggle('on',t3);
+}
+$('st-e').addEventListener('click',()=>setTab(false));
+$('st-3').addEventListener('click',()=>setTab(true));
 $('b-set').addEventListener('click',()=>setPane('p-set'));
 {
   let sy=null;
@@ -1420,7 +1591,8 @@ const R=[
   ['r-lw','v-lw', c=>Math.round(c.lw*10),   (c,v)=>{ c.lw=v/10; }],
   ['r-thr','v-thr',c=>Math.round(c.thr*100),(c,v)=>{ c.thr=v/100; }],
   ['r-pt','v-pt', c=>Math.round(c.pt*100),  (c,v)=>{ c.pt=v/100; applyPt(); }],
-  ['r-fs','v-fs', c=>Math.round(c.fs*100),  (c,v)=>{ c.fs=v/100; }]
+  ['r-fs','v-fs', c=>Math.round(c.fs*100),  (c,v)=>{ c.fs=v/100; }],
+  ['r-mo','v-mo', c=>Math.round(c.mo*100),  (c,v)=>{ c.mo=v/100; }]
 ];
 const T=[
   ['g-tess','tessOn'],['g-bars','bars'],['g-pose','poseHud'],['g-gaze','gaze'],
@@ -1678,14 +1850,10 @@ $('v-clr').addEventListener('click',()=>{ steno=[]; renderSteno(); toast('Сте
     try{
       let t=performance.now();
       if(vid.readyState>=2){
-        for(const m of [FL,GR,PL,SG,OD]){
+        for(const m of [FL,GR,PL]){
           if(!m) continue;
           t+=0.2;
           if(m===GR) m.recognizeForVideo(vid,t);
-          else if(m===SG){
-            const r=m.segmentForVideo(vid,t);
-            if(r&&r.confidenceMasks) for(const mm of r.confidenceMasks){ try{ mm.close(); }catch(_){} }
-          }
           else m.detectForVideo(vid,t);
         }
       }
