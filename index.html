@@ -89,6 +89,10 @@ body:not(.m3) .o3{display:none!important;}
   .mt.on:hover{background:var(--acc);color:#0B0B0C;}
 }
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px;}
+#ax-x{color:#FF6B6B;border-color:rgba(255,107,107,.4);}
+#ax-y{color:var(--acc);border-color:rgba(198,245,66,.4);}
+#ax-z{color:#5AC8FA;border-color:rgba(90,200,250,.4);}
+#ax-x.off,#ax-y.off,#ax-z.off{color:var(--mut);border-color:rgba(255,255,255,.08);}
 .mt:active,.tgl:active{transform:scale(.93);}
 #drow::-webkit-scrollbar{display:none;}
 </style>
@@ -142,9 +146,10 @@ body:not(.m3) .o3{display:none!important;}
     <div class="dpane" id="p-edit">
       <div class="dscroll">
         <div class="sh">РЕДАКТОР ТОЧОК</div>
-        <div class="srow"><span id="e-stat">Тапни по точці хмари</span></div>
+        <div class="srow"><span id="e-stat">КРОК 1 — тапни по точці хмари</span></div>
         <div class="srow"><span>РАДІУС</span><input type="range" id="e-rad" min="5" max="80" step="5"><span class="sv" id="ve-rad"></span></div>
         <div class="srow"><span>ВІСЬ ТЯГИ</span><span class="btnpair"><button class="tgl" id="ax-x">X</button><button class="tgl off" id="ax-y">Y</button><button class="tgl off" id="ax-z">Z</button></span></div>
+        <div class="srow"><span>ЗСУВ ПО ОСІ</span><span class="sv" id="ve-off">0.00</span></div>
         <button id="e-reset">СКИНУТИ ДЕФОРМАЦІЇ</button>
       </div>
     </div>
@@ -528,7 +533,8 @@ let faceRes=null, gestRes=null, poseRes=null, objRes=null, segCache=null;
 let handsOK=[], gestsOK=[], faceBB=null;
 const layer={ face:true, gest:true, pose:false, seg:false, obj:false };
 const dead={};
-let facing='user', mirrored=true, stream=null;
+let facing='user', mirrored=true;
+let vidTracks=[], micTracks=[];
 let frameNo=0, running=false, mode3d=false;
 let fpsV=0, lastT=performance.now(), lastFpsUpd=0, fpsTxt='--', fpsCol=ACC_D;
 let queue=[], queueKey='';
@@ -573,13 +579,35 @@ function fail(t){ ltxt.textContent=t; ltxt.classList.add('err'); fill.classList.
 retry.addEventListener('click',()=>location.reload());
 
 // ── КАМЕРА ─────────────────────────────────────────────
-async function startCam(f){
-  if(stream) stream.getTracks().forEach(t=>t.stop());
-  stream=await navigator.mediaDevices.getUserMedia({
+function stopTracks(a){ for(const t of a){ try{ t.stop(); }catch(_){} } }
+// Один запит на камеру+мікрофон; відмова від мікро не валить камеру
+async function startAV(f){
+  stopTracks(vidTracks); stopTracks(micTracks);
+  vidTracks=[]; micTracks=[];
+  const V={ facingMode:f, width:{ideal:640}, height:{ideal:480} };
+  let st=null;
+  try{
+    st=await navigator.mediaDevices.getUserMedia({ video:V, audio:true });
+  }catch(e){
+    st=await navigator.mediaDevices.getUserMedia({ video:V, audio:false });
+    toast('Мікрофон не дали — їдемо без нього.');
+  }
+  vidTracks=st.getVideoTracks();
+  micTracks=st.getAudioTracks();
+  vid.srcObject=new MediaStream(vidTracks);
+  vid.muted=true;
+  await vid.play();
+}
+// Фліп: міняємо лише відеотрек, мікрофон і розпізнавання живуть
+async function swapVideo(f){
+  const st=await navigator.mediaDevices.getUserMedia({
     audio:false,
     video:{ facingMode:f, width:{ideal:640}, height:{ideal:480} }
   });
-  vid.srcObject=stream; vid.muted=true;
+  stopTracks(vidTracks);
+  vidTracks=st.getVideoTracks();
+  vid.srcObject=new MediaStream(vidTracks);
+  vid.muted=true;
   await vid.play();
 }
 function applyMirror(){
@@ -831,7 +859,9 @@ function postGest(now){
     if(want){
       s.cnt++;
       const px=(lm[4].x+lm[8].x)/2, py=(lm[4].y+lm[8].y)/2;
-      const pz=((lm[4].z||0)+(lm[8].z||0))/2;
+      const zRaw=Math.max(-0.6,Math.min(1.2,(0.12/scale-1)*0.9));
+      s.zEma = (s.zEma===undefined) ? zRaw : s.zEma+(zRaw-s.zEma)*0.3;
+      const pz=s.zEma;
       if(s.cnt>=2){                             // дебаунс: 2 кадри поспіль
         if(slot===0){                           // пензель
           if(!s.on || !s.cur){ s.cur={pts:[{x:px,y:py,z:pz}]}; strokes.push(s.cur); }
@@ -1317,7 +1347,7 @@ function draw(){
 let THREE=null, scene=null, geo3={};
 const orbit={ th:0, ph:1.15, r:1.9, vth:0, vph:0 };
 const c3=[0,0,0]; let s3=1;                        // фіт: центр + масштаб
-let grid3=null, selMesh=null;                      // сітка-підлога, маркер піка
+let grid3=null, selMesh=null, gizmo=null;          // сітка, маркер піка, осьовий гізмо
 let fly=false, flyPos=null, flyYaw=0, flyPitch=0;
 let joyId=-1, joyOx=0, joyOy=0, joyVx=0, joyVy=0, lookId=-1;
 let orbN=0, t3last=0;
@@ -1369,6 +1399,14 @@ async function init3D(){
     new THREE.MeshBasicMaterial({ color:0xC6F542, wireframe:true, transparent:true, opacity:0.25 }));
   selMesh.visible=false;
   scene.add(selMesh);
+  const mkAxis=col=>{
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(6),3));
+    const o=new THREE.LineSegments(g,new THREE.LineBasicMaterial({ color:col, transparent:true, opacity:0.3 }));
+    o.frustumCulled=false; o.visible=false;
+    scene.add(o); return o;
+  };
+  gizmo=[ mkAxis(0xFF6B6B), mkAxis(0xC6F542), mkAxis(0x5AC8FA) ];
   applyPt();
   // Вказівники: орбіта (драг+щипок+інерція) / політ (джойстик+огляд)
   const ptr=new Map(), downs=new Map();
@@ -1412,6 +1450,7 @@ async function init3D(){
       const dx=e.clientX-pv[0], dy=e.clientY-pv[1];
       if(openPane==='p-edit' && curTweak){
         curTweak.o[edAxis]+=(edAxis===1 ? -dy : dx)*0.004;
+        $('ve-off').textContent=curTweak.o[edAxis].toFixed(2);
         orbit.vth=orbit.vph=0;
       } else {
         orbit.th-=dx*0.006;
@@ -1575,10 +1614,11 @@ function loop3(){
   const dt=t3last?Math.min(0.05,(tn-t3last)/1000):0.016;
   t3last=tn;
   upd3(dt);
+  const eb=(openPane==='p-edit')?1.5:1;
   if(micOn){
-    applyPt(1+micLevel*0.9);
+    applyPt((1+micLevel*0.9)*eb);
     geo3.faceL.material.opacity=0.3+micLevel*0.35;
-  }
+  } else applyPt(eb);
   renderer.render(scene,cam3);
   requestAnimationFrame(loop3);
 }
@@ -1666,8 +1706,8 @@ $('b-flip').addEventListener('click',async ()=>{
   handsOK=[]; gestsOK=[]; faceBB=null;
   gazeL=gazeR=null; hasPose=hasDist=false;
   clearStrokes();
-  try{ await startCam(facing); }
-  catch(_){ facing=prev; try{ await startCam(facing); }catch(_2){} }
+  try{ await swapVideo(facing); }
+  catch(_){ facing=prev; try{ await swapVideo(facing); }catch(_2){} }
   applyMirror();
   delete b.dataset.busy; b.classList.remove('off');
 });
@@ -1723,7 +1763,8 @@ function setPane(id){
   $('b-edit').classList.toggle('on',id==='p-edit');
   if(id==='p-voice') renderSteno();
   if(id==='p-set') setTab(mode3d);
-  if(id!=='p-edit'){ curTweak=null; if(selMesh) selMesh.visible=false; }
+  if(id==='p-edit' && !curTweak) edStat('КРОК 1 — тапни по точці хмари');
+  if(id!=='p-edit'){ curTweak=null; if(selMesh) selMesh.visible=false; if(typeof gizmoUpd==='function') gizmoUpd(); }
 }
 function setTab(t3){
   $('sg-e').hidden=t3; $('sg-3').hidden=!t3;
@@ -1799,21 +1840,45 @@ $('e-rad').addEventListener('input',()=>{
   if(curTweak){
     curTweak.r=edRadius;
     if(selMesh) selMesh.scale.setScalar(edRadius);
+    gizmoUpd();
   }
 });
 const AXB=['ax-x','ax-y','ax-z'];
 AXB.forEach((id,i)=>$(id).addEventListener('click',()=>{
   edAxis=i;
   AXB.forEach((q,j)=>$(q).classList.toggle('off',j!==i));
-  if(curTweak) edStat('Точка вибрана — тягни пальцем (вісь '+'XYZ'[edAxis]+').');
+  gizmoUpd();
+  if(curTweak){
+    edStat('КРОК 2 — тягни по сцені (вісь '+'XYZ'[edAxis]+')');
+    $('ve-off').textContent=curTweak.o[edAxis].toFixed(2);
+  }
 }));
 $('e-reset').addEventListener('click',()=>{
   tweaks=[]; curTweak=null;
   if(selMesh) selMesh.visible=false;
-  edStat('Тапни по точці хмари');
+  gizmoUpd();
+  $('ve-off').textContent='0.00';
+  edStat('КРОК 1 — тапни по точці хмари');
   toast('Деформації скинуто.');
 });
-// Пік: проєкція всіх видимих точок камерою, найближча в 40px
+// Гізмо: три осі крізь вибрану точку, активна — яскрава
+function gizmoUpd(){
+  if(!gizmo) return;
+  const on=!!curTweak && openPane==='p-edit';
+  for(let i=0;i<3;i++){
+    const g=gizmo[i];
+    g.visible=on;
+    if(!on) continue;
+    const L=Math.max(0.25, edRadius*1.6);
+    const arr=g.geometry.attributes.position.array;
+    arr[0]=curTweak.c[0]; arr[1]=curTweak.c[1]; arr[2]=curTweak.c[2];
+    arr[3]=curTweak.c[0]; arr[4]=curTweak.c[1]; arr[5]=curTweak.c[2];
+    arr[i]-=L; arr[i+3]+=L;
+    g.geometry.attributes.position.needsUpdate=true;
+    g.material.opacity = (i===edAxis) ? 0.95 : 0.28;
+  }
+}
+// Пік: проєкція всіх видимих точок камерою, найближча в 70px
 function edPick(px,py){
   if(!THREE||!cam3) return;
   const a=(vid.videoWidth||640)/(vid.videoHeight||480);
@@ -1832,7 +1897,7 @@ function edPick(px,py){
   if(pl) addLm([pl[0]]);
   if(!cands.length){ edStat('Хмара порожня — нема що пікати.'); return; }
   const v=new THREE.Vector3();
-  let best=-1, bd=1600, bx=0, byy=0, bz=0;
+  let best=-1, bd=4900, bx=0, byy=0, bz=0;
   for(let i=0;i<cands.length;i+=3){
     let x=cands[i], y=cands[i+1], z=cands[i+2];
     for(const t of tweaks){
@@ -1845,7 +1910,7 @@ function edPick(px,py){
     const dd=(sx-px)*(sx-px)+(sy-py)*(sy-py);
     if(dd<bd){ bd=dd; best=i; bx=x; byy=y; bz=z; }
   }
-  if(best<0){ edStat('Поряд точки нема — тапни ближче.'); return; }
+  if(best<0){ edStat('КРОК 1 — тапни ближче до точки'); toast('Не влучив — тапни ближче до точки.'); return; }
   curTweak={ c:[bx,byy,bz], r:edRadius, o:[0,0,0] };
   tweaks.push(curTweak);
   if(tweaks.length>24) tweaks.shift();
@@ -1854,11 +1919,14 @@ function edPick(px,py){
     selMesh.scale.setScalar(edRadius);
     selMesh.visible=true;
   }
-  edStat('Точка вибрана — тягни пальцем (вісь '+'XYZ'[edAxis]+').');
+  gizmoUpd();
+  $('ve-off').textContent='0.00';
+  edStat('КРОК 2 — тягни по сцені (вісь '+'XYZ'[edAxis]+')');
+  toast('Точка є. Тягни пальцем — вісь '+'XYZ'[edAxis]+'.');
 }
 
 // ── МОВА: мікрофон, еквалайзер, субтитри ──────────────
-let micOn=false, micStream=null, actx=null, analy=null, micLevel=0;
+let micOn=false, actx=null, analy=null, srcNode=null, micLevel=0;
 let rec=null, recWant=false, finText='';
 const subsEl=$('subs'), sfin=$('sfin'), sint=$('sint');
 const eqc=$('eq'), eqx=eqc.getContext('2d');
@@ -1908,14 +1976,19 @@ function startRec(){
 async function setMic(on){
   if(on===micOn) return;
   if(on){
-    try{ micStream=await navigator.mediaDevices.getUserMedia({ audio:true }); }
-    catch(e){ toast('Мікрофон зарубали. Дозволь у налаштуваннях.'); $('v-mic').classList.add('off'); return; }
+    if(!micTracks.length){
+      toast('Мікрофона нема — дозволь доступ і перезапусти.');
+      $('v-mic').classList.add('off');
+      return;
+    }
+    for(const t of micTracks) t.enabled=true;
     const AC=window.AudioContext||window.webkitAudioContext;
-    actx=new AC();
-    const src=actx.createMediaStreamSource(micStream);
-    analy=actx.createAnalyser(); analy.fftSize=128;
-    src.connect(analy);
+    if(!actx) actx=new AC();
     try{ await actx.resume(); }catch(_){}
+    if(srcNode){ try{ srcNode.disconnect(); }catch(_){} }
+    srcNode=actx.createMediaStreamSource(new MediaStream(micTracks));
+    analy=actx.createAnalyser(); analy.fftSize=128;
+    srcNode.connect(analy);
     micOn=true;
     finText=''; sfin.textContent=''; sint.textContent='';
     subsEl.classList.add('on');
@@ -1926,10 +1999,9 @@ async function setMic(on){
   }else{
     micOn=false; recWant=false;
     try{ rec&&rec.stop(); }catch(_){}
-    if(micStream) micStream.getTracks().forEach(t=>t.stop());
-    micStream=null;
-    try{ actx&&actx.close(); }catch(_){}
-    actx=null; analy=null; micLevel=0;
+    for(const t of micTracks) t.enabled=false;
+    if(srcNode){ try{ srcNode.disconnect(); }catch(_){} srcNode=null; }
+    analy=null; micLevel=0;
     subsEl.classList.remove('on');
     $('v-mic').classList.add('off');
     if(THREE) applyPt(1);
@@ -2061,6 +2133,37 @@ $('v-pdf').addEventListener('click',()=>{
 });
 $('v-clr').addEventListener('click',()=>{ steno=[]; renderSteno(); toast('Стенограму стерто.'); });
 
+// ── ЖИТТЄВИЙ ЦИКЛ: звільняємо камеру/мікро при згортанні ──
+let suspended=false, wantMic=false;
+function suspendAV(){
+  if(suspended) return;
+  suspended=true;
+  wantMic=micOn;
+  recWant=false;
+  try{ rec&&rec.stop(); }catch(_){}
+  stopTracks(vidTracks); stopTracks(micTracks);
+  vidTracks=[]; micTracks=[];
+  if(srcNode){ try{ srcNode.disconnect(); }catch(_){} srcNode=null; }
+  try{ actx&&actx.close(); }catch(_){}
+  actx=null; analy=null; micOn=false; micLevel=0;
+  subsEl.classList.remove('on');
+  $('v-mic').classList.add('off');
+}
+async function resumeAV(){
+  if(!suspended||!running) return;
+  suspended=false;
+  try{
+    await startAV(facing);
+    applyMirror();
+    if(wantMic) await setMic(true);
+  }catch(_){ toast('Камера не піднялась — онови сторінку.'); }
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden') suspendAV();
+  else resumeAV();
+});
+window.addEventListener('pagehide',suspendAV);
+
 // ── BOOT ───────────────────────────────────────────────
 (async ()=>{
   try{
@@ -2072,11 +2175,10 @@ $('v-clr').addEventListener('click',()=>{ steno=[]; renderSteno(); toast('Сте
     lstart.hidden=false;
     await new Promise(res=>lstart.addEventListener('click',res,{ once:true }));
     lstart.hidden=true;
-    st('Дай добро на камеру, ша…',15);
-    try{ await startCam(facing); }
+    st('Дай добро на камеру й мікрофон (один запит)…',15);
+    try{ await startAV(facing); }
     catch(e){ throw { kind:'cam', e }; }
     applyMirror();
-    st('Тепер мікрофон…',22);
     try{ await setMic(true); }catch(_){}
     st('І гіроскоп…',26);
     await initGyro();
