@@ -141,17 +141,11 @@ body:not(.m3) .o3{display:none!important;}
     </div>
     <div class="dpane" id="p-edit">
       <div class="dscroll">
-        <div class="sh">ПЕРЕМІЩЕННЯ</div>
-        <div class="srow"><span>X</span><input type="range" id="e-tx" min="-100" max="100" step="2"><span class="sv" id="ve-tx"></span></div>
-        <div class="srow"><span>Y</span><input type="range" id="e-ty" min="-100" max="100" step="2"><span class="sv" id="ve-ty"></span></div>
-        <div class="srow"><span>Z</span><input type="range" id="e-tz" min="-100" max="100" step="2"><span class="sv" id="ve-tz"></span></div>
-        <div class="sh">ОБЕРТАННЯ</div>
-        <div class="srow"><span>X</span><input type="range" id="e-rx" min="-180" max="180" step="5"><span class="sv" id="ve-rx"></span></div>
-        <div class="srow"><span>Y</span><input type="range" id="e-ry" min="-180" max="180" step="5"><span class="sv" id="ve-ry"></span></div>
-        <div class="srow"><span>Z</span><input type="range" id="e-rz" min="-180" max="180" step="5"><span class="sv" id="ve-rz"></span></div>
-        <div class="sh">МАСШТАБ</div>
-        <div class="srow"><span>S</span><input type="range" id="e-sc" min="30" max="300" step="5"><span class="sv" id="ve-sc"></span></div>
-        <button id="e-reset">СКИНУТИ ТРАНСФОРМ</button>
+        <div class="sh">РЕДАКТОР ТОЧОК</div>
+        <div class="srow"><span id="e-stat">Тапни по точці хмари</span></div>
+        <div class="srow"><span>РАДІУС</span><input type="range" id="e-rad" min="5" max="80" step="5"><span class="sv" id="ve-rad"></span></div>
+        <div class="srow"><span>ВІСЬ ТЯГИ</span><span class="btnpair"><button class="tgl" id="ax-x">X</button><button class="tgl off" id="ax-y">Y</button><button class="tgl off" id="ax-z">Z</button></span></div>
+        <button id="e-reset">СКИНУТИ ДЕФОРМАЦІЇ</button>
       </div>
     </div>
     <div class="dpane" id="p-export">
@@ -486,6 +480,27 @@ function applyXf(x,y,z,R,s,t,out,o){
   out[o]  =(R[0]*x+R[1]*y+R[2]*z)*s+t[0];
   out[o+1]=(R[3]*x+R[4]*y+R[5]*z)*s+t[1];
   out[o+2]=(R[6]*x+R[7]*y+R[8]*z)*s+t[2];
+}
+// М'який спад по квадрату дистанції: (1-d²/r²)² в межах r
+function falloff2(d2,r){
+  if(r<=0) return 0;
+  const rr=r*r;
+  if(d2>=rr) return 0;
+  const q=1-d2/rr;
+  return q*q;
+}
+// Стек м'яких деформацій над плоским масивом точок (fit-простір)
+function applyTweaks(pos,tweaks){
+  for(const t of tweaks){
+    const cx=t.c[0], cy=t.c[1], cz=t.c[2];
+    const ox=t.o[0], oy=t.o[1], oz=t.o[2];
+    for(let i=0;i<pos.length;i+=3){
+      const dx=pos[i]-cx, dy=pos[i+1]-cy, dz=pos[i+2]-cz;
+      const w=falloff2(dx*dx+dy*dy+dz*dz,t.r);
+      if(w>0){ pos[i]+=ox*w; pos[i+1]+=oy*w; pos[i+2]+=oz*w; }
+    }
+  }
+  return pos;
 }
 //#endregion PURE
 
@@ -930,7 +945,6 @@ function initWGL(){
     wBuf=wgl.createBuffer(); wUV=wgl.createBuffer();
     wgl.enableVertexAttribArray(wLocP);
     wgl.enableVertexAttribArray(wLocT);
-    wgl.pixelStorei(wgl.UNPACK_FLIP_Y_WEBGL,true);
     wglOK=true;
     return true;
   }catch(_){ wglOK=false; wgl=null; return false; }
@@ -950,7 +964,7 @@ function wglPrep(){
   const uv=new Float32Array(wN*2);
   for(let i=0;i<wN;i++){
     const p=maskLms[TRIS[i]];
-    uv[i*2]=p.x; uv[i*2+1]=1-p.y;
+    uv[i*2]=p.x; uv[i*2+1]=p.y;
   }
   wgl.bindBuffer(wgl.ARRAY_BUFFER,wUV);
   wgl.bufferData(wgl.ARRAY_BUFFER,uv,wgl.STATIC_DRAW);
@@ -1303,7 +1317,7 @@ function draw(){
 let THREE=null, scene=null, geo3={};
 const orbit={ th:0, ph:1.15, r:1.9, vth:0, vph:0 };
 const c3=[0,0,0]; let s3=1;                        // фіт: центр + масштаб
-let grid3=null;                                    // сітка-підлога
+let grid3=null, selMesh=null;                      // сітка-підлога, маркер піка
 let fly=false, flyPos=null, flyYaw=0, flyPitch=0;
 let joyId=-1, joyOx=0, joyOy=0, joyVx=0, joyVy=0, lookId=-1;
 let orbN=0, t3last=0;
@@ -1350,6 +1364,11 @@ async function init3D(){
   geo3.poseL=mkLines(PCONN.length*2,0xC6F542,0.45);
   geo3.poseP=mkPts(33,0xC6F542,0.022,0.6);
   geo3.inkL=mkLines(16384,0xFFFFFF,0.95);
+  selMesh=new THREE.Mesh(
+    new THREE.SphereGeometry(1,14,10),
+    new THREE.MeshBasicMaterial({ color:0xC6F542, wireframe:true, transparent:true, opacity:0.25 }));
+  selMesh.visible=false;
+  scene.add(selMesh);
   applyPt();
   // Вказівники: орбіта (драг+щипок+інерція) / політ (джойстик+огляд)
   const ptr=new Map(), downs=new Map();
@@ -1391,9 +1410,14 @@ async function init3D(){
     ptr.set(e.pointerId,[e.clientX,e.clientY]);
     if(ptr.size===1){
       const dx=e.clientX-pv[0], dy=e.clientY-pv[1];
-      orbit.th-=dx*0.006;
-      orbit.ph=Math.max(0.15,Math.min(3.0,orbit.ph-dy*0.006));
-      orbit.vth=-dx*0.006; orbit.vph=-dy*0.006;
+      if(openPane==='p-edit' && curTweak){
+        curTweak.o[edAxis]+=(edAxis===1 ? -dy : dx)*0.004;
+        orbit.vth=orbit.vph=0;
+      } else {
+        orbit.th-=dx*0.006;
+        orbit.ph=Math.max(0.15,Math.min(3.0,orbit.ph-dy*0.006));
+        orbit.vth=-dx*0.006; orbit.vph=-dy*0.006;
+      }
     }else if(ptr.size===2){
       const ps=[...ptr.values()];
       const nd=Math.hypot(ps[0][0]-ps[1][0],ps[0][1]-ps[1][1]);
@@ -1404,9 +1428,14 @@ async function init3D(){
   const up=e=>{
     const d=downs.get(e.pointerId); downs.delete(e.pointerId);
     if(d && performance.now()-d.t<250 && Math.hypot(e.clientX-d.x,e.clientY-d.y)<12){
-      const tn=performance.now();
-      if(tn-lastTap<330 && Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<40){ resetCam(); lastTap=0; }
-      else { lastTap=tn; lastTapX=e.clientX; lastTapY=e.clientY; }
+      if(openPane==='p-edit' && mode3d && !fly){
+        edPick(e.clientX,e.clientY);
+        lastTap=0;
+      } else {
+        const tn=performance.now();
+        if(tn-lastTap<330 && Math.hypot(e.clientX-lastTapX,e.clientY-lastTapY)<40){ resetCam(); lastTap=0; }
+        else { lastTap=tn; lastTapX=e.clientX; lastTapY=e.clientY; }
+      }
     }
     if(e.pointerId===joyId){ joyId=-1; joyVx=joyVy=0; hideJoy(); }
     if(e.pointerId===lookId) lookId=-1;
@@ -1445,7 +1474,13 @@ function setFly(on,silent){
 }
 function map3(p,a,out,o){
   const m=mapPt(p,a,mirrored);
-  applyXf((m[0]-c3[0])*s3,(m[1]-c3[1])*s3,(m[2]-c3[2])*s3, edR, edT.s, edTv, out, o);
+  let x=(m[0]-c3[0])*s3, y=(m[1]-c3[1])*s3, z=(m[2]-c3[2])*s3;
+  for(const t of tweaks){
+    const dx=x-t.c[0], dy=y-t.c[1], dz=z-t.c[2];
+    const w=falloff2(dx*dx+dy*dy+dz*dz,t.r);
+    if(w>0){ x+=t.o[0]*w; y+=t.o[1]*w; z+=t.o[2]*w; }
+  }
+  out[o]=x; out[o+1]=y; out[o+2]=z;
 }
 function fillLines(obj,lm,conns,a){
   const arr=obj.geometry.attributes.position.array;
@@ -1587,8 +1622,7 @@ function collectCloud(){
   const sp=strokes.map(q=>q.pts).filter(p=>p.length>1);
   if(sp.length) ents.push({ lms:sp, poly:true, color:[1,0.757,0.235] });
   const cl=buildCloud(ents,a,mirrored,c3,s3);
-  for(let i=0;i<cl.pos.length;i+=3)
-    applyXf(cl.pos[i],cl.pos[i+1],cl.pos[i+2],edR,edT.s,edTv,cl.pos,i);
+  applyTweaks(cl.pos,tweaks);
   return cl;
 }
 function stamp(){
@@ -1689,6 +1723,7 @@ function setPane(id){
   $('b-edit').classList.toggle('on',id==='p-edit');
   if(id==='p-voice') renderSteno();
   if(id==='p-set') setTab(mode3d);
+  if(id!=='p-edit'){ curTweak=null; if(selMesh) selMesh.visible=false; }
 }
 function setTab(t3){
   $('sg-e').hidden=t3; $('sg-3').hidden=!t3;
@@ -1754,39 +1789,73 @@ $('s-reset').addEventListener('click',()=>{
 vid.style.filter='brightness('+cfg.br+')';
 syncSheet();
 
-// ── 3D-РЕДАКТОР: ручний трансформ хмари по XYZ ────────
-const edT={ tx:0, ty:0, tz:0, rx:0, ry:0, rz:0, s:1 };
-let edR=[1,0,0,0,1,0,0,0,1];
-const edTv=[0,0,0];
-function edApply(){
-  edR=eulToMat(edT.rx,edT.ry,edT.rz);
-  edTv[0]=edT.tx; edTv[1]=edT.ty; edTv[2]=edT.tz;
-}
-const ED=[
-  ['e-tx','ve-tx',()=>Math.round(edT.tx*100),v=>edT.tx=v/100],
-  ['e-ty','ve-ty',()=>Math.round(edT.ty*100),v=>edT.ty=v/100],
-  ['e-tz','ve-tz',()=>Math.round(edT.tz*100),v=>edT.tz=v/100],
-  ['e-rx','ve-rx',()=>Math.round(edT.rx*180/Math.PI),v=>edT.rx=v*Math.PI/180],
-  ['e-ry','ve-ry',()=>Math.round(edT.ry*180/Math.PI),v=>edT.ry=v*Math.PI/180],
-  ['e-rz','ve-rz',()=>Math.round(edT.rz*180/Math.PI),v=>edT.rz=v*Math.PI/180],
-  ['e-sc','ve-sc',()=>Math.round(edT.s*100),v=>edT.s=v/100]
-];
-function syncEd(){
-  for(const [rid,vid4,get] of ED){ $(rid).value=String(get()); $(vid4).textContent=$(rid).value; }
-}
-for(const [rid,vid4,,set] of ED){
-  $(rid).addEventListener('input',()=>{
-    set(parseInt($(rid).value,10));
-    $(vid4).textContent=$(rid).value;
-    edApply();
-  });
-}
-$('e-reset').addEventListener('click',()=>{
-  edT.tx=edT.ty=edT.tz=edT.rx=edT.ry=edT.rz=0; edT.s=1;
-  edApply(); syncEd();
-  toast('Трансформ скинуто.');
+// ── 3D-РЕДАКТОР: тап-пік точки + м'яка деформація по осі ──
+let tweaks=[], curTweak=null, edAxis=0, edRadius=0.25;
+function edStat(t){ $('e-stat').textContent=t; }
+$('e-rad').value='25'; $('ve-rad').textContent='25';
+$('e-rad').addEventListener('input',()=>{
+  edRadius=parseInt($('e-rad').value,10)/100;
+  $('ve-rad').textContent=$('e-rad').value;
+  if(curTweak){
+    curTweak.r=edRadius;
+    if(selMesh) selMesh.scale.setScalar(edRadius);
+  }
 });
-syncEd();
+const AXB=['ax-x','ax-y','ax-z'];
+AXB.forEach((id,i)=>$(id).addEventListener('click',()=>{
+  edAxis=i;
+  AXB.forEach((q,j)=>$(q).classList.toggle('off',j!==i));
+  if(curTweak) edStat('Точка вибрана — тягни пальцем (вісь '+'XYZ'[edAxis]+').');
+}));
+$('e-reset').addEventListener('click',()=>{
+  tweaks=[]; curTweak=null;
+  if(selMesh) selMesh.visible=false;
+  edStat('Тапни по точці хмари');
+  toast('Деформації скинуто.');
+});
+// Пік: проєкція всіх видимих точок камерою, найближча в 40px
+function edPick(px,py){
+  if(!THREE||!cam3) return;
+  const a=(vid.videoWidth||640)/(vid.videoHeight||480);
+  const cands=[];
+  const addLm=ls=>{
+    for(const lm of ls) for(const p of lm){
+      const m=mapPt(p,a,mirrored);
+      cands.push((m[0]-c3[0])*s3,(m[1]-c3[1])*s3,(m[2]-c3[2])*s3);
+    }
+  };
+  const fl=layer.face&&faceRes&&faceRes.faceLandmarks&&faceRes.faceLandmarks.length?faceRes.faceLandmarks:null;
+  const hl=layer.gest&&handsOK.length?handsOK:null;
+  const pl=layer.pose&&poseRes&&poseRes.landmarks&&poseRes.landmarks.length?poseRes.landmarks:null;
+  if(fl) addLm([fl[0]]);
+  if(hl) addLm(hl);
+  if(pl) addLm([pl[0]]);
+  if(!cands.length){ edStat('Хмара порожня — нема що пікати.'); return; }
+  const v=new THREE.Vector3();
+  let best=-1, bd=1600, bx=0, byy=0, bz=0;
+  for(let i=0;i<cands.length;i+=3){
+    let x=cands[i], y=cands[i+1], z=cands[i+2];
+    for(const t of tweaks){
+      const dx=x-t.c[0], dy=y-t.c[1], dz=z-t.c[2];
+      const w=falloff2(dx*dx+dy*dy+dz*dz,t.r);
+      if(w>0){ x+=t.o[0]*w; y+=t.o[1]*w; z+=t.o[2]*w; }
+    }
+    v.set(x,y,z).project(cam3);
+    const sx=(v.x*0.5+0.5)*W, sy=(0.5-v.y*0.5)*H;
+    const dd=(sx-px)*(sx-px)+(sy-py)*(sy-py);
+    if(dd<bd){ bd=dd; best=i; bx=x; byy=y; bz=z; }
+  }
+  if(best<0){ edStat('Поряд точки нема — тапни ближче.'); return; }
+  curTweak={ c:[bx,byy,bz], r:edRadius, o:[0,0,0] };
+  tweaks.push(curTweak);
+  if(tweaks.length>24) tweaks.shift();
+  if(selMesh){
+    selMesh.position.set(bx,byy,bz);
+    selMesh.scale.setScalar(edRadius);
+    selMesh.visible=true;
+  }
+  edStat('Точка вибрана — тягни пальцем (вісь '+'XYZ'[edAxis]+').');
+}
 
 // ── МОВА: мікрофон, еквалайзер, субтитри ──────────────
 let micOn=false, micStream=null, actx=null, analy=null, micLevel=0;
