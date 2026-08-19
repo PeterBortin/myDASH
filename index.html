@@ -57,6 +57,7 @@ body:not(.m3) .o3{display:none!important;}
 .btn.off{opacity:.35;}
 .tgl{background:var(--card2);border:1px solid rgba(255,255,255,.08);color:var(--acc);border-radius:10px;font:inherit;font-size:11px;font-weight:700;min-width:54px;height:28px;cursor:pointer;touch-action:manipulation;}
 .tgl.off{color:var(--mut);}
+.btnpair{display:flex;gap:8px;}
 .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px;}
 .srow input[type=range]{flex:1;max-width:52%;accent-color:var(--acc);height:28px;touch-action:none;}
 .sv{min-width:36px;text-align:right;color:var(--mut);font-size:11px;}
@@ -68,7 +69,7 @@ body:not(.m3) .o3{display:none!important;}
 .sl b{color:var(--mut);font-weight:600;margin-right:8px;font-size:11px;}
 #vrow{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0 12px;}
 #vrow .chip{min-width:62px;height:38px;}
-#s-reset{margin:14px auto 6px;display:block;background:transparent;border:1px solid rgba(255,69,58,.5);color:var(--red);font:inherit;font-size:12px;font-weight:600;letter-spacing:.5px;padding:10px 24px;border-radius:12px;cursor:pointer;}
+#s-reset,#e-reset{margin:14px auto 6px;display:block;background:transparent;border:1px solid rgba(255,69,58,.5);color:var(--red);font:inherit;font-size:12px;font-weight:600;letter-spacing:.5px;padding:10px 24px;border-radius:12px;cursor:pointer;}
 #loader{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .5s;}
 #loader.out{opacity:0;pointer-events:none;}
 #lhead{font-size:28px;font-weight:800;letter-spacing:.5px;}
@@ -119,7 +120,7 @@ body:not(.m3) .o3{display:none!important;}
         <div class="srow"><span>КОНТУР СЕГМ.</span><button class="tgl" id="g-edge">ВКЛ</button></div>
         <div class="srow"><span>ЗАТЕМНЕННЯ СЕГМ.</span><button class="tgl" id="g-dim">ВКЛ</button></div>
         <div class="srow"><span>МАСКА ПРОЗОРІСТЬ</span><input type="range" id="r-mo" min="20" max="100" step="5"><span class="sv" id="v-mo"></span></div>
-        <div class="srow"><span>ФОТО МАСКИ</span><button class="tgl" id="g-photo">ОБРАТИ</button></div>
+        <div class="srow"><span>ФОТО МАСКИ</span><span class="btnpair"><button class="tgl" id="g-photo">ОБРАТИ</button><button class="tgl" id="g-photoclr">СКИНУТИ</button></span></div>
       </div>
       <div id="sg-3" hidden>
         <div class="srow"><span>РОЗМІР ТОЧОК</span><input type="range" id="r-pt" min="50" max="200" step="10"><span class="sv" id="v-pt"></span></div>
@@ -136,6 +137,21 @@ body:not(.m3) .o3{display:none!important;}
         <button class="chip" id="c-seg">СЕГМ</button>
         <button class="chip" id="c-obj">ОБ'ЄКТИ</button>
         <button class="chip warn" id="c-clear">СТЕРТИ</button>
+      </div>
+    </div>
+    <div class="dpane" id="p-edit">
+      <div class="dscroll">
+        <div class="sh">ПЕРЕМІЩЕННЯ</div>
+        <div class="srow"><span>X</span><input type="range" id="e-tx" min="-100" max="100" step="2"><span class="sv" id="ve-tx"></span></div>
+        <div class="srow"><span>Y</span><input type="range" id="e-ty" min="-100" max="100" step="2"><span class="sv" id="ve-ty"></span></div>
+        <div class="srow"><span>Z</span><input type="range" id="e-tz" min="-100" max="100" step="2"><span class="sv" id="ve-tz"></span></div>
+        <div class="sh">ОБЕРТАННЯ</div>
+        <div class="srow"><span>X</span><input type="range" id="e-rx" min="-180" max="180" step="5"><span class="sv" id="ve-rx"></span></div>
+        <div class="srow"><span>Y</span><input type="range" id="e-ry" min="-180" max="180" step="5"><span class="sv" id="ve-ry"></span></div>
+        <div class="srow"><span>Z</span><input type="range" id="e-rz" min="-180" max="180" step="5"><span class="sv" id="ve-rz"></span></div>
+        <div class="sh">МАСШТАБ</div>
+        <div class="srow"><span>S</span><input type="range" id="e-sc" min="30" max="300" step="5"><span class="sv" id="ve-sc"></span></div>
+        <button id="e-reset">СКИНУТИ ТРАНСФОРМ</button>
       </div>
     </div>
     <div class="dpane" id="p-export">
@@ -169,6 +185,7 @@ body:not(.m3) .o3{display:none!important;}
     <button class="btn oe" id="b-layers" aria-label="Шари"><svg viewBox="0 0 24 24"><path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/></svg><span>Шари</span></button>
     <button class="btn oe" id="b-mask" aria-label="Маска"><svg viewBox="0 0 24 24"><path d="M9 11.75c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S9.69 11.75 9 11.75zm6 0c-.69 0-1.25.56-1.25 1.25s.56 1.25 1.25 1.25 1.25-.56 1.25-1.25S15.69 11.75 15 11.75zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-4c-2.33 0-4.32-1.45-5.12-3.5h1.67c.69 1.19 1.97 2 3.45 2s2.75-.81 3.45-2h1.67c-.8 2.05-2.79 3.5-5.12 3.5z"/></svg><span>Маска</span></button>
     <button class="btn o3" id="b-dive" aria-label="Пірнути"><svg viewBox="0 0 24 24"><path d="M11 4h2v10.17l3.59-3.58L18 12l-6 6-6-6 1.41-1.41L11 14.17V4zM4 20h16v2H4v-2z"/></svg><span>Пірнути</span></button>
+    <button class="btn o3" id="b-edit" aria-label="Редактор"><svg viewBox="0 0 24 24"><path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"/></svg><span>Редакт</span></button>
     <button class="btn o3" id="b-export" aria-label="Експорт"><svg viewBox="0 0 24 24"><path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/></svg><span>Експорт</span></button>
     <button class="btn" id="b-mic" aria-label="Мова"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.49 6-3.31 6-6.72h-1.7z"/></svg><span>Мова</span></button>
     <button class="btn" id="b-set" aria-label="Налаштування"><svg viewBox="0 0 24 24"><path d="M19.14 12.94a7 7 0 0 0 .06-.94 7 7 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.61-.22l-2.39.96a7.3 7.3 0 0 0-1.62-.94l-.36-2.54A.5.5 0 0 0 13.9 2h-3.8a.5.5 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.62.94l-2.39-.96a.5.5 0 0 0-.61.22L2.71 8.48a.5.5 0 0 0 .12.64l2.03 1.58a7 7 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.34.61.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.25.42.49.42h3.8c.24 0 .44-.18.49-.42l.36-2.54a7.3 7.3 0 0 0 1.62-.94l2.39.96c.19.12.47.02.61-.22l1.92-3.32a.5.5 0 0 0-.12-.64zM12 15.5A3.5 3.5 0 1 1 15.5 12 3.5 3.5 0 0 1 12 15.5z"/></svg><span>Налашт</span></button>
@@ -454,6 +471,21 @@ function affineOf(s,d){
     (u0*(x1*y2-x2*y1)+u1*(x2*y0-x0*y2)+u2*(x0*y1-x1*y0))/den,
     (v0*(x1*y2-x2*y1)+v1*(x2*y0-x0*y2)+v2*(x0*y1-x1*y0))/den
   ];
+}
+// Матриця обертання Rz*Ry*Rx (row-major, 9 елементів)
+function eulToMat(rx,ry,rz){
+  const cx=Math.cos(rx),sx=Math.sin(rx),cy=Math.cos(ry),sy=Math.sin(ry),cz=Math.cos(rz),sz=Math.sin(rz);
+  return [
+    cz*cy, cz*sy*sx-sz*cx, cz*sy*cx+sz*sx,
+    sz*cy, sz*sy*sx+cz*cx, sz*sy*cx-cz*sx,
+    -sy,   cy*sx,          cy*cx
+  ];
+}
+// Застосувати R·v*s + t у плоский масив
+function applyXf(x,y,z,R,s,t,out,o){
+  out[o]  =(R[0]*x+R[1]*y+R[2]*z)*s+t[0];
+  out[o+1]=(R[3]*x+R[4]*y+R[5]*z)*s+t[1];
+  out[o+2]=(R[6]*x+R[7]*y+R[8]*z)*s+t[2];
 }
 //#endregion PURE
 
@@ -873,6 +905,59 @@ function postSeg(res){
 // ── МАСКА: жива проєкція фото на сітку ────────────────
 let maskOn=false, maskImg=null, maskLms=null, FLI=null, TRIS=null, warpBox=null;
 const warpCv=document.createElement('canvas'), warpX=warpCv.getContext('2d');
+const warpGl=document.createElement('canvas');
+let wgl=null, wglOK=false, wTex=null, wBuf=null, wUV=null, wPos=null, wN=0, wLocP=0, wLocT=0;
+function initWGL(){
+  try{
+    wgl=warpGl.getContext('webgl',{ alpha:true, premultipliedAlpha:true, antialias:false });
+    if(!wgl) return false;
+    const mkSh=(t,src)=>{
+      const x=wgl.createShader(t);
+      wgl.shaderSource(x,src); wgl.compileShader(x);
+      if(!wgl.getShaderParameter(x,wgl.COMPILE_STATUS)) throw 0;
+      return x;
+    };
+    const pr=wgl.createProgram();
+    wgl.attachShader(pr,mkSh(wgl.VERTEX_SHADER,
+      'attribute vec2 aP;attribute vec2 aT;varying vec2 vT;void main(){vT=aT;gl_Position=vec4(aP,0.,1.);}'));
+    wgl.attachShader(pr,mkSh(wgl.FRAGMENT_SHADER,
+      'precision mediump float;varying vec2 vT;uniform sampler2D uS;void main(){gl_FragColor=texture2D(uS,vT);}'));
+    wgl.linkProgram(pr);
+    if(!wgl.getProgramParameter(pr,wgl.LINK_STATUS)) throw 0;
+    wgl.useProgram(pr);
+    wLocP=wgl.getAttribLocation(pr,'aP');
+    wLocT=wgl.getAttribLocation(pr,'aT');
+    wBuf=wgl.createBuffer(); wUV=wgl.createBuffer();
+    wgl.enableVertexAttribArray(wLocP);
+    wgl.enableVertexAttribArray(wLocT);
+    wgl.pixelStorei(wgl.UNPACK_FLIP_Y_WEBGL,true);
+    wglOK=true;
+    return true;
+  }catch(_){ wglOK=false; wgl=null; return false; }
+}
+// Підготовка після завантаження фото: текстура + статичні UV
+function wglPrep(){
+  if(!wglOK && !initWGL()) return;
+  if(wTex){ try{ wgl.deleteTexture(wTex); }catch(_){} }
+  wTex=wgl.createTexture();
+  wgl.bindTexture(wgl.TEXTURE_2D,wTex);
+  wgl.texImage2D(wgl.TEXTURE_2D,0,wgl.RGBA,wgl.RGBA,wgl.UNSIGNED_BYTE,maskImg);
+  wgl.texParameteri(wgl.TEXTURE_2D,wgl.TEXTURE_MIN_FILTER,wgl.LINEAR);
+  wgl.texParameteri(wgl.TEXTURE_2D,wgl.TEXTURE_MAG_FILTER,wgl.LINEAR);
+  wgl.texParameteri(wgl.TEXTURE_2D,wgl.TEXTURE_WRAP_S,wgl.CLAMP_TO_EDGE);
+  wgl.texParameteri(wgl.TEXTURE_2D,wgl.TEXTURE_WRAP_T,wgl.CLAMP_TO_EDGE);
+  wN=TRIS.length;
+  const uv=new Float32Array(wN*2);
+  for(let i=0;i<wN;i++){
+    const p=maskLms[TRIS[i]];
+    uv[i*2]=p.x; uv[i*2+1]=1-p.y;
+  }
+  wgl.bindBuffer(wgl.ARRAY_BUFFER,wUV);
+  wgl.bufferData(wgl.ARRAY_BUFFER,uv,wgl.STATIC_DRAW);
+  wPos=new Float32Array(wN*2);
+  wgl.bindBuffer(wgl.ARRAY_BUFFER,wBuf);
+  wgl.bufferData(wgl.ARRAY_BUFFER,wPos,wgl.DYNAMIC_DRAW);
+}
 const photoIn=document.createElement('input');
 photoIn.type='file'; photoIn.accept='image/*';
 photoIn.addEventListener('change',async ()=>{
@@ -892,6 +977,7 @@ photoIn.addEventListener('change',async ()=>{
     maskLms=r.faceLandmarks[0];
     maskImg=bmp;
     if(!TRIS) TRIS=trisFromEdges(TESS);
+    wglPrep();
     maskOn=true;
     $('b-mask').classList.add('on');
     toast('Маска на місці. '+(TRIS.length/3|0)+' трикутників.');
@@ -905,6 +991,14 @@ $('b-mask').addEventListener('click',()=>{
   }
   maskOn=!maskOn;
   $('b-mask').classList.toggle('on',maskOn);
+});
+$('g-photoclr').addEventListener('click',()=>{
+  if(!maskImg){ toast('Фото й так нема.'); return; }
+  try{ maskImg.close&&maskImg.close(); }catch(_){}
+  maskImg=null; maskLms=null; maskOn=false; warpBox=null;
+  if(wglOK&&wTex){ try{ wgl.deleteTexture(wTex); }catch(_){} wTex=null; wPos=null; }
+  $('b-mask').classList.remove('on');
+  toast('Маску скинуто.');
 });
 $('g-photo').addEventListener('click',()=>{
   if(!fsv||!MPFace){ toast('Моделі ще їдуть, зачекай.'); return; }
@@ -922,6 +1016,29 @@ function renderWarp(lm,vw,vh){
   if(bw<8||bh<8){ warpBox=null; return; }
   const S=Math.min(1.6, 640/Math.max(bw,bh));
   const W3=Math.max(2,Math.round(bw*S)), H3=Math.max(2,Math.round(bh*S));
+  // Швидкий шлях: WebGL — вся сітка одним draw call, без швів
+  if((wglOK||initWGL()) && wTex && wPos){
+    if(warpGl.width!==W3||warpGl.height!==H3){
+      warpGl.width=W3; warpGl.height=H3;
+    }
+    wgl.viewport(0,0,W3,H3);
+    wgl.clearColor(0,0,0,0);
+    wgl.clear(wgl.COLOR_BUFFER_BIT);
+    for(let i=0;i<wN;i++){
+      const p=lm[TRIS[i]];
+      wPos[i*2]  =((p.x*vw-bx)*S)/W3*2-1;
+      wPos[i*2+1]=1-((p.y*vh-by)*S)/H3*2;
+    }
+    wgl.bindBuffer(wgl.ARRAY_BUFFER,wBuf);
+    wgl.bufferSubData(wgl.ARRAY_BUFFER,0,wPos);
+    wgl.vertexAttribPointer(wLocP,2,wgl.FLOAT,false,0,0);
+    wgl.bindBuffer(wgl.ARRAY_BUFFER,wUV);
+    wgl.vertexAttribPointer(wLocT,2,wgl.FLOAT,false,0,0);
+    wgl.drawArrays(wgl.TRIANGLES,0,wN);
+    warpBox={ bx,by,bw,bh, src:warpGl };
+    return;
+  }
+  // Фолбек: 2D-канвас потрикутниково
   if(warpCv.width!==W3||warpCv.height!==H3){ warpCv.width=W3; warpCv.height=H3; }
   warpX.clearRect(0,0,W3,H3);
   const iw=maskImg.width, ih=maskImg.height, sl=maskLms, EX=1.03;
@@ -946,7 +1063,7 @@ function renderWarp(lm,vw,vh){
     warpX.drawImage(maskImg,0,0);
     warpX.restore();
   }
-  warpBox={ bx,by,bw,bh };
+  warpBox={ bx,by,bw,bh, src:warpCv };
 }
 
 // ── СЛОВНИК COCO -> УКР ────────────────────────────────
@@ -1027,7 +1144,7 @@ function draw(){
   // МАСКА: фото, натягнуте на живу сітку
   if(maskOn && warpBox && faceRes && faceRes.faceLandmarks && faceRes.faceLandmarks.length){
     ctx.globalAlpha=cfg.mo;
-    ctx.drawImage(warpCv, ox+warpBox.bx*s, oy+warpBox.by*s, warpBox.bw*s, warpBox.bh*s);
+    ctx.drawImage(warpBox.src, ox+warpBox.bx*s, oy+warpBox.by*s, warpBox.bw*s, warpBox.bh*s);
     ctx.globalAlpha=1;
   }
 
@@ -1328,7 +1445,7 @@ function setFly(on,silent){
 }
 function map3(p,a,out,o){
   const m=mapPt(p,a,mirrored);
-  out[o]=(m[0]-c3[0])*s3; out[o+1]=(m[1]-c3[1])*s3; out[o+2]=(m[2]-c3[2])*s3;
+  applyXf((m[0]-c3[0])*s3,(m[1]-c3[1])*s3,(m[2]-c3[2])*s3, edR, edT.s, edTv, out, o);
 }
 function fillLines(obj,lm,conns,a){
   const arr=obj.geometry.attributes.position.array;
@@ -1469,7 +1586,10 @@ function collectCloud(){
   if(pl) ents.push({ lms:[pl[0]], conns:PCONN, color:[0.29,0.55,0.36] });
   const sp=strokes.map(q=>q.pts).filter(p=>p.length>1);
   if(sp.length) ents.push({ lms:sp, poly:true, color:[1,0.757,0.235] });
-  return buildCloud(ents,a,mirrored,c3,s3);
+  const cl=buildCloud(ents,a,mirrored,c3,s3);
+  for(let i=0;i<cl.pos.length;i+=3)
+    applyXf(cl.pos[i],cl.pos[i+1],cl.pos[i+2],edR,edT.s,edTv,cl.pos,i);
+  return cl;
 }
 function stamp(){
   const d=new Date(), p=v=>String(v).padStart(2,'0');
@@ -1495,6 +1615,7 @@ function doExport(fmt){
 $('m-efir').addEventListener('click',()=>setMode(false));
 $('m-3d').addEventListener('click',()=>setMode(true));
 $('b-dive').addEventListener('click',()=>{ if(mode3d&&THREE) setFly(!fly,false); });
+$('b-edit').addEventListener('click',()=>setPane('p-edit'));
 $('b-export').addEventListener('click',()=>setPane('p-export'));
 $('e-ply').addEventListener('click',()=>{ setPane(null); doExport('ply'); });
 $('e-obj').addEventListener('click',()=>{ setPane(null); doExport('obj'); });
@@ -1558,13 +1679,14 @@ let openPane=null;
 function setPane(id){
   if(id && openPane===id) id=null;
   openPane=id;
-  for(const p of ['p-set','p-layers','p-export','p-voice'])
+  for(const p of ['p-set','p-layers','p-export','p-voice','p-edit'])
     $(p).style.display=(p===id)?'block':'none';
   dock.classList.toggle('open',!!id);
   $('b-set').classList.toggle('on',id==='p-set');
   $('b-layers').classList.toggle('on',id==='p-layers');
   $('b-export').classList.toggle('on',id==='p-export');
   $('b-mic').classList.toggle('on',id==='p-voice');
+  $('b-edit').classList.toggle('on',id==='p-edit');
   if(id==='p-voice') renderSteno();
   if(id==='p-set') setTab(mode3d);
 }
@@ -1631,6 +1753,40 @@ $('s-reset').addEventListener('click',()=>{
 });
 vid.style.filter='brightness('+cfg.br+')';
 syncSheet();
+
+// ── 3D-РЕДАКТОР: ручний трансформ хмари по XYZ ────────
+const edT={ tx:0, ty:0, tz:0, rx:0, ry:0, rz:0, s:1 };
+let edR=[1,0,0,0,1,0,0,0,1];
+const edTv=[0,0,0];
+function edApply(){
+  edR=eulToMat(edT.rx,edT.ry,edT.rz);
+  edTv[0]=edT.tx; edTv[1]=edT.ty; edTv[2]=edT.tz;
+}
+const ED=[
+  ['e-tx','ve-tx',()=>Math.round(edT.tx*100),v=>edT.tx=v/100],
+  ['e-ty','ve-ty',()=>Math.round(edT.ty*100),v=>edT.ty=v/100],
+  ['e-tz','ve-tz',()=>Math.round(edT.tz*100),v=>edT.tz=v/100],
+  ['e-rx','ve-rx',()=>Math.round(edT.rx*180/Math.PI),v=>edT.rx=v*Math.PI/180],
+  ['e-ry','ve-ry',()=>Math.round(edT.ry*180/Math.PI),v=>edT.ry=v*Math.PI/180],
+  ['e-rz','ve-rz',()=>Math.round(edT.rz*180/Math.PI),v=>edT.rz=v*Math.PI/180],
+  ['e-sc','ve-sc',()=>Math.round(edT.s*100),v=>edT.s=v/100]
+];
+function syncEd(){
+  for(const [rid,vid4,get] of ED){ $(rid).value=String(get()); $(vid4).textContent=$(rid).value; }
+}
+for(const [rid,vid4,,set] of ED){
+  $(rid).addEventListener('input',()=>{
+    set(parseInt($(rid).value,10));
+    $(vid4).textContent=$(rid).value;
+    edApply();
+  });
+}
+$('e-reset').addEventListener('click',()=>{
+  edT.tx=edT.ty=edT.tz=edT.rx=edT.ry=edT.rz=0; edT.s=1;
+  edApply(); syncEd();
+  toast('Трансформ скинуто.');
+});
+syncEd();
 
 // ── МОВА: мікрофон, еквалайзер, субтитри ──────────────
 let micOn=false, micStream=null, actx=null, analy=null, micLevel=0;
